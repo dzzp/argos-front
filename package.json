@@ -1,0 +1,17 @@
+{
+  "name": "argos-front",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron index.js",
+    "install": "electron-packager . argos-front"
+  },
+  "author": "Kwanghee Choi",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^1.7.8",
+    "electron-packager": "^9.1.0",
+    "electron-reload": "^1.2.2"
+  }
+}
