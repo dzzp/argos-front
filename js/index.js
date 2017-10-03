@@ -11,5 +11,5 @@ app.on('ready', () => {
         height: 600,
         // fullscreen: true,
     });
-    win.loadURL(`file://${__dirname}/index.html`);
+    win.loadURL(`file://${__dirname}/../html/index.html`);
 });
