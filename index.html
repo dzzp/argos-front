@@ -20,7 +20,7 @@
     <div class="row full">
         <div id="vueapp" class="col-5 full">
             <div class="row full">
-                <div id="left" class="col-7 full pad scrollable">
+                <div id="left" class="col-6 full pad scrollable">
                     <div>
                         <button type="button" class="btn btn-primary btn-lg btn-block" v-on:click="fileDialog">Add Video</button>
                         <div class="card pad" v-for="(video, index) in videos" v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === open_file_index}">
@@ -52,11 +52,11 @@
                                 <div class="card pad" v-for="(location, index) in locations" v-on:click="locationSet(location)">
                                     <div class="card-block">
                                         <h4 class="card-title">{{location.address}}</h4>
-                                        <p class="card-text">{{location.x}}, {{location.y}}</p>
+                                        <p class="card-text">{{location.lat}}, {{location.lng}}</p>
                                     </div>
                                 </div>
                             </div>
-                            <div v-else-if="input_location.length> 0">
+                            <div v-else-if="input_location.length > 0">
                                 <div class="card pad">
                                     <div class="card-block">
                                         <h4 class="card-title">Not found.</h4>
@@ -95,16 +95,47 @@
                 this.memo = memo;
             }
 
-            static checkVideo() {
-
+            checkVideo() {
+                let errors = [];
+                if (this.file == null || this.file == '') {
+                    errors.push('File is empty.');
+                }
+                if (this.datetime == null || this.datetime == '') {
+                    errors.push('Datetime is empty.')
+                }
+                if (this.location == null) {
+                    errors.push('Location is empty.');
+                } else {
+                    for (let error in this.location.checkLocation()) {
+                        errors.push(error);
+                    }
+                }
+                if (this.memo == null) {
+                    this.memo = '';
+                }
+                return errors;
             }
         }
 
         class Location {
-            constructor(address, n, e) {
+            constructor(address, lat, lng) {
                 this.address = address;
-                this.n = n;
-                this.e = e;
+                this.lat = lat;
+                this.lng = lng;
+            }
+
+            checkLocation() {
+                let errors = [];
+                if (this.address == null || this.address == '') {
+                    errors.push('Address is empty.');
+                }
+                if (this.lat == null || isNaN(parseFloat(this.lat))) {
+                    errors.push('Address latitude is wrong.');
+                }
+                if (this.lng == null || isNaN(parseFloat(this.lng))) {
+                    errors.push('Address longitude is wrong.');
+                }
+                return errors;
             }
         }
 
@@ -156,17 +187,26 @@
                     app.input_datetime = app.open_datetime === null ? '' : app.open_datetime;
                     app.input_location = app.open_location === null ? '' : app.open_location.address;
                     app.input_memo = app.open_memo === null ? '' : app.open_memo;
+                    app.chosen_location = app.open_location;
                 },
                 fileSave: () => {
                     if (app.open_file_index === null) return;
-                    app.videos[app.open_file_index].datetime = app.input_datetime;
-                    app.videos[app.open_file_index].location = app.chosen_location;
-                    app.videos[app.open_file_index].memo = app.input_memo;
-                    app.filePromptPurge();
+                    let video = new Video(
+                        app.videos[app.open_file_index].file,
+                        app.input_datetime,
+                        app.chosen_location,
+                        app.input_memo
+                    );
+                    let errors = video.checkVideo();
+                    if (errors.length > 0) {
+                        alert('Cannot save video metadata.\n' + errors.join('\n'));
+                    } else {
+                        app.videos[app.open_file_index] = video;
+                        app.filePromptPurge();
+                    }
                 },
                 fileDelete: () => {
                     if (app.open_file_index === null) return;
-                    console.log(app.open_file_index);
                     app.videos.splice(app.open_file_index, 1);
                     app.files.splice(app.open_file_index, 1);
                     app.filePromptPurge();
@@ -184,15 +224,15 @@
                     app.input_datetime = '';
                     app.input_memo = '';
 
-                    app.chosen_location = '';
+                    app.chosen_location = null;
                     if (app.chosen_marker !== null) app.chosen_marker.setMap(null);
                     app.chosen_marker = null;
                 },
                 locationSet: (location) => {
-                    app.chosen_location = location;
+                    app.chosen_location = new Location(location.address, location.lat, location.lng);
                     app.input_location = location.address;
                     if (app.chosen_marker !== null) app.chosen_marker.setMap(null);
-                    let position = new naver.maps.LatLng(location.n, location.e);
+                    let position = new naver.maps.LatLng(location.lat, location.lng);
                     app.chosen_marker = new naver.maps.Marker({
                         position: position,
                         map: map
@@ -202,6 +242,7 @@
             },
             watch: {
                 input_location: function(newVal, oldVal) {
+                    if (newVal === '') return;
                     naver.maps.Service.geocode({
                         address: newVal,
                     }, function(status, response) {
