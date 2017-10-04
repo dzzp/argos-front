@@ -23,7 +23,7 @@
                 <div id="left" class="col-7 full pad scrollable">
                     <div>
                         <button type="button" class="btn btn-primary btn-lg btn-block" v-on:click="fileDialog">Add Video</button>
-                        <div v-for="(video, index) in videos" v-on:click="fileOpen(index)" class="card pad">
+                        <div class="card pad" v-for="(video, index) in videos" v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === open_file_index}">
                             <div class="card-block">
                                 <h2>{{video.file.split('/').slice(-1)[0]}}</h2>
                                 <small>{{video.file}}</small>
@@ -38,10 +38,18 @@
                             <input type="text" class="form-control" id="inputFile" v-bind:placeholder="open_file.split('/').slice(-1)[0]" readonly>
                         </div>
                         <div class="form-group">
+                            <label for="inputMemo">Memo</label>
+                            <input type="text" class="form-control" id="inputMemo" v-model="input_memo">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputDatetime">Datetime</label>
+                            <input type="datetime-local" class="form-control" id="inputDatetime" v-model="input_datetime">
+                        </div>
+                        <div class="form-group">
                             <label for="inputLocation">Location</label>
-                            <input type="text" class="form-control" id="inputLocation" v-model="input_location" v-bind:placeholder="open_location ? open_location.address : ''">
+                            <input type="text" class="form-control" id="inputLocation" v-model="input_location">
                             <div v-if="locations.length > 0">
-                                <div class="card pad" v-for="(location, index) in locations">
+                                <div class="card pad" v-for="(location, index) in locations" v-on:click="locationSet(location)">
                                     <div class="card-block">
                                         <h4 class="card-title">{{location.address}}</h4>
                                         <p class="card-text">{{location.x}}, {{location.y}}</p>
@@ -56,11 +64,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="inputMemo">Memo</label>
-                            <input type="text" class="form-control" id="inputMemo" v-model="input_memo" v-bind:placeholder="open_memo ? open_memo : ''">
-                        </div>
-                        <button type="button" class="btn btn-primary btn-lg btn-block" v-on:click="fileDialog">Save Video</button>
+                        <button type="button" class="btn btn-primary btn-lg btn-block" v-on:click="fileSave()">Save Video</button>
+                        <button type="button" class="btn btn-danger btn-lg btn-block" v-on:click="fileDelete()">Delete Video</button>
                     </form>
                 </div>
             </div>
@@ -83,19 +88,23 @@
         );
 
         class Video {
-            constructor(file, date, location, memo) {
+            constructor(file, datetime, location, memo) {
                 this.file = file;
-                this.date = date;
+                this.datetime = datetime;
                 this.location = location;
                 this.memo = memo;
+            }
+
+            static checkVideo() {
+
             }
         }
 
         class Location {
-            constructor(address, x, y) {
+            constructor(address, n, e) {
                 this.address = address;
-                this.x = x;
-                this.y = y;
+                this.n = n;
+                this.e = e;
             }
         }
 
@@ -106,32 +115,20 @@
                 files: [],
                 locations: [],
 
-                open_file: null,
-                open_date: null,
+                open_file_index: null,
+                open_file: '',
+                open_datetime: null,
                 open_location: null,
                 open_memo: null,
 
                 input_location: '',
+                input_datetime: '',
                 input_memo: '',
+
+                chosen_location: '',
+                chosen_marker: null,
             },
             methods: {
-                /*
-                addVideo: function() {
-                    this.videos.push(new Video(
-                        this.input_filepath,
-                        this.input_date,
-                        this.input_location,
-                        this.input_memo,
-                    ));
-                    this.input_filepath = '';
-                    this.input_date = '';
-                    this.input_location = '';
-                    this.input_memo = '';
-                },
-                delVideo: function(index) {
-                    this.videos.splice(index, 1);
-                },
-                */
                 fileDialog: () => {
                     dialog.showOpenDialog({
                             title: 'Choose Video',
@@ -148,15 +145,59 @@
                     );
                 },
                 fileOpen: (index) => {
-                    app.locations = [];
+                    app.filePromptPurge();
 
+                    app.open_file_index = index;
                     app.open_file = app.videos[index].file;
-                    app.open_date = app.videos[index].date;
+                    app.open_datetime = app.videos[index].datetime;
                     app.open_location = app.videos[index].location;
                     app.open_memo = app.videos[index].memo;
 
+                    app.input_datetime = app.open_datetime === null ? '' : app.open_datetime;
+                    app.input_location = app.open_location === null ? '' : app.open_location.address;
+                    app.input_memo = app.open_memo === null ? '' : app.open_memo;
+                },
+                fileSave: () => {
+                    if (app.open_file_index === null) return;
+                    app.videos[app.open_file_index].datetime = app.input_datetime;
+                    app.videos[app.open_file_index].location = app.chosen_location;
+                    app.videos[app.open_file_index].memo = app.input_memo;
+                    app.filePromptPurge();
+                },
+                fileDelete: () => {
+                    if (app.open_file_index === null) return;
+                    console.log(app.open_file_index);
+                    app.videos.splice(app.open_file_index, 1);
+                    app.files.splice(app.open_file_index, 1);
+                    app.filePromptPurge();
+                },
+                filePromptPurge: () => {
+                    app.locations = [];
+
+                    app.open_file_index = null;
+                    app.open_file = '';
+                    app.open_datetime = null;
+                    app.open_location = null;
+                    app.open_memo = null;
+
                     app.input_location = '';
+                    app.input_datetime = '';
                     app.input_memo = '';
+
+                    app.chosen_location = '';
+                    if (app.chosen_marker !== null) app.chosen_marker.setMap(null);
+                    app.chosen_marker = null;
+                },
+                locationSet: (location) => {
+                    app.chosen_location = location;
+                    app.input_location = location.address;
+                    if (app.chosen_marker !== null) app.chosen_marker.setMap(null);
+                    let position = new naver.maps.LatLng(location.n, location.e);
+                    app.chosen_marker = new naver.maps.Marker({
+                        position: position,
+                        map: map
+                    });
+                    map.panTo(position);
                 }
             },
             watch: {
@@ -171,8 +212,8 @@
                         for (let i = 0; i < response.result.total; i++) {
                             app.locations.push(new Location(
                                 response.result.items[i].address,
-                                response.result.items[i].point.x,
                                 response.result.items[i].point.y,
+                                response.result.items[i].point.x,
                             ));
                         }
                     });
