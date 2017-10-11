@@ -22,6 +22,7 @@
             <div class="row full">
                 <div id="left" class="col-6 full pad scrollable">
                     <div>
+                        <button type="button" class="btn btn-primary btn-lg btn-block" v-on:click="sendVideos">Analyze Videos</button>
                         <button type="button" class="btn btn-primary btn-lg btn-block" v-on:click="fileDialog">Add Video</button>
                         <div class="card pad" v-for="(video, index) in videos" v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === open_file_index}">
                             <div class="card-block">
@@ -105,11 +106,12 @@
                 if (this.datetime == null || this.datetime == '') {
                     errors.push('Datetime is empty.')
                 }
-                if (this.location == null) {
+                if (this.location == null || this.location.constructor.name !== "Location") {
                     errors.push('Location is empty.');
                 } else {
-                    for (let error in this.location.checkLocation()) {
-                        errors.push(error);
+                    let locationErrors = this.location.checkLocation();
+                    for (let i = 0; i < locationErrors.length; i++) {
+                        errors.push(locationErrors[i]);
                     }
                 }
                 if (this.memo == null) {
@@ -240,6 +242,41 @@
                         map: map
                     });
                     map.panTo(position);
+                },
+                sendVideos: () => {
+                    let errors = [];
+                    for (let i = 0; i < app.videos.length; i++) {
+                        var video = app.videos[i];
+                        var videoErrors = video.checkVideo();
+                        if (videoErrors.length > 0) {
+                            errors = errors.concat([video.file], video.checkVideo(), [""]);
+                        }
+                    }
+                    if (errors.length > 0) {
+                        alert('Cannot analyze video.\n' + errors.join('\n'));
+                    } else {
+                        if (confirm("Are you sure you want to stop adding videos?")) {
+                            let reqVideos = [];
+                            for (let i = 0; i < app.videos.length; i++) {
+                                let video = app.videos[i];
+                                reqVideos.push({
+                                    "lat": video.location.lat,
+                                    "lng": video.location.lng,
+                                    "path": video.file,
+                                    "time": video.datetime,
+                                    "memo": video.memo
+                                });
+                            }
+                            // TODO: Send this.
+                            let reqData = JSON.stringify({
+                                "videos": reqVideos,
+                                "code": "detect_request"
+                            });
+                            console.log(reqData);
+
+                            // TODO: Go to loading page.
+                        }
+                    }
                 }
             },
             watch: {
