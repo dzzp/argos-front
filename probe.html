@@ -1,0 +1,73 @@
+<!doctype html>
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Argos</title>
+
+    <script>
+        if (typeof module === 'object') {
+            window.module = module;
+            module = undefined;
+        }
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.2.0/js/ion.rangeSlider.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/locale/ko.js"></script>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.2.0/css/ion.rangeSlider.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.2.0/css/ion.rangeSlider.skinHTML5.min.css">
+</head>
+
+
+<body class="container-fluid wrapper">
+    <div id="vueapp" class="row full">
+        <div class="col-3 full pad scrollable" style="background-color: black">
+            <div class="card pad" v-for="(video, index) in videos" v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === open_file_index}">
+                <div class="card-block">
+                    <h2>{{video.file.split('/').slice(-1)[0]}}</h2>
+                    <small>{{video.file}}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-9 full pad scrollable">
+            <div style="padding: 50px 100px 50px 100px; margin: 10px;">
+                <input id="slider" type="range"></input>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#vueapp',
+            data: {
+                videos: [],
+                files: [],
+                locations: [],
+            },
+            methods: {},
+            watch: {}
+        });
+        $('#slider').ionRangeSlider({
+            type: "double",
+            grid: true,
+            min: +moment("2013-01-01T13:13"),
+            max: +moment("2013-01-02T12:12"),
+            prettify: (num) => {
+                return moment(num).format("llll");
+            },
+            onFinish: (data) => {
+                console.log(moment(data['from']).format("llll"));
+                console.log(moment(data['to']).format("llll"));
+            }
+        });
+    </script>
+</body>
