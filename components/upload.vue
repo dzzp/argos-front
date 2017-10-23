@@ -22,7 +22,7 @@
                         </div>
                         <div class="form-group">
                             <label for="inputDatetime">Datetime</label>
-                            <input type="datetime-local" class="form-control" id="inputDatetime" v-model="selectedVideo.datetime">
+                            <input type="datetime-local" class="form-control" id="inputDatetime" step="1" v-model="selectedVideo.datetime">
                         </div>
                         <div class="form-group">
                             <label for="selectedLocation">Location</label>
