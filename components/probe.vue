@@ -1,6 +1,7 @@
 <template>
     <div id="vueapp" class="row full">
         <div class="col-3 full pad scrollable">
+            <button type="button" class="btn btn-primary btn-lg btn-block" @click="sendPeople">Send suspects</button>
             <div class="card pad" v-for="(video, index) in videos" :key="video.file"
                     v-on:click="chooseVideo(index)" v-bind:class="{'bg-secondary' : index === selectedVideoIndex}">
                 <videoitem class="card-block" :filename="video.path"> </videoitem>
@@ -28,6 +29,7 @@ import Video from './video.js';
 import $ from 'jquery';
 import ionRangeSlider from 'ion-rangeslider';
 import moment from 'moment';
+import axios from 'axios';
 
 export default {
     data: function() {
@@ -150,17 +152,52 @@ export default {
             let imgList = this.videos[index].img;
             if(imgList.length < 1) return;
 
+            console.log()
             $('#slider').data('ionRangeSlider').destroy();
             $('#slider').ionRangeSlider({
                 type: "double",
                 grid: true,
+                grid_snap: true,
+                step: 1000,
                 min: +moment(imgList[0].time),
                 max: +moment(imgList[imgList.length-1].time),
+                from: +moment(imgList[0].time),
+                to: +moment(imgList[0].time),
                 prettify: (num) => {
-                    return moment(num).format("llll");
+                    return moment(num).format().slice(0, -6);
                 },
                 onFinish: this.__slider__callback
             });
+        },
+        sendPeople: function(index) {
+            if (confirm("Are you sure you want to stop looking for suspects?")) {
+                let retData = [];
+                for(let i=0; i<this.videos.length; i++) {
+                    let images = this.videos[i].img;
+                    console.log(images);
+                    for(let j=0; j<images.length; j++) {
+                        let people = images[j].persons;
+                        console.log(people);
+                        for(let k=0; k<people.length; k++) {
+                            if(people[k].chosen) retData.push(people[k].person_idx);
+                        }
+                    }
+                }
+                console.log(retData);
+                // TODO: Send this.
+                axios({
+                    method: 'get',
+                    url: 'http://www.bing.com',
+                    data: {
+                        persons: retData,
+                        code: 'probe_request',
+                    }
+                })
+                .then(this.__axios__callback)
+                .catch(function(error) {
+                    console.log(error);
+                });
+            }
         },
         __slider__callback(data) {
             this.chosenPeople = [];
@@ -173,6 +210,12 @@ export default {
                     }
                 }
             }
+        },
+        __axios__callback() {
+            this.$router.push({
+                path: 'loading',
+                query: { nextRoute: 'gallery' },
+            });
         }
     },
     mounted: function() {
@@ -183,7 +226,7 @@ export default {
             min: +moment(),
             max: +moment(),
             prettify: (num) => {
-                return moment(num).format("llll");
+                return moment(num).format().slice(0, -6);
             },
         });
     }
