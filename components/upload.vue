@@ -1,58 +1,56 @@
 <template>
-    <div>
-        <div class="row full">
-            <div class="col-6 full">
-                <div class="row full">
-                    <div class="col-6 full pad scrollable">
-                        <button type="button" class="btn btn-primary btn-lg btn-block" @click="sendVideos">Analyze Videos</button>
-                        <button type="button" class="btn btn-primary btn-lg btn-block" @click="fileDialog">Add Video</button>
-                        <div class="card pad" v-for="(video, index) in videos" :key="video.file"
-                             v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === selectedVideoIndex}">
-                            <videoitem class="card-block" :filename="video.file"> </videoitem>
-                        </div>
-                    </div>
-                    <div class="col-6 full pad scrollable">
-                        <form v-if="selectedVideo !== null">
-                            <div class="form-group">
-                                <label for="inputFile">File name</label>
-                                <input type="text" class="form-control" id="inputFile" v-bind:placeholder="selectedVideoFile" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label for="inputMemo">Memo</label>
-                                <input type="text" class="form-control" id="inputMemo" v-model="selectedVideo.memo">
-                            </div>
-                            <div class="form-group">
-                                <label for="inputDatetime">Datetime</label>
-                                <input type="datetime-local" class="form-control" id="inputDatetime" v-model="selectedVideo.datetime">
-                            </div>
-                            <div class="form-group">
-                                <label for="selectedLocation">Location</label>
-                                <input type="text" class="form-control" id="selectedLocation" v-model="selectedVideo.location.address">
-                                 <div v-if="locations.length > 0">
-                                    <div class="card pad" v-for="(location, index) in locations" @click="locationSet(location)" :key="location.address">
-                                        <div class="card-block">
-                                            <h4 class="card-title">{{location.address}}</h4>
-                                            <p class="card-text">{{location.lat}}, {{location.lng}}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else-if="selectedVideo.location.address.length > 0">
-                                    <div class="card pad">
-                                        <div class="card-block">
-                                            <h4 class="card-title">Not found.</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-primary btn-lg btn-block" @click="saveSelectedVideo">Save Video</button>
-                            <button type="button" class="btn btn-danger btn-lg btn-block" @click="deleteSelectedVideo">Delete Video</button>
-                        </form>
+    <div class="row full">
+        <div class="col-6 full">
+            <div class="row full">
+                <div class="col-6 full pad scrollable">
+                    <button type="button" class="btn btn-primary btn-lg btn-block" @click="sendVideos">Analyze Videos</button>
+                    <button type="button" class="btn btn-primary btn-lg btn-block" @click="fileDialog">Add Video</button>
+                    <div class="card pad" v-for="(video, index) in videos" :key="video.file"
+                            v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === selectedVideoIndex}">
+                        <videoitem class="card-block" :filename="video.file"> </videoitem>
                     </div>
                 </div>
+                <div class="col-6 full pad scrollable">
+                    <form v-if="selectedVideo !== null">
+                        <div class="form-group">
+                            <label for="inputFile">File name</label>
+                            <input type="text" class="form-control" id="inputFile" v-bind:placeholder="selectedVideoFile" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputMemo">Memo</label>
+                            <input type="text" class="form-control" id="inputMemo" v-model="selectedVideo.memo">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputDatetime">Datetime</label>
+                            <input type="datetime-local" class="form-control" id="inputDatetime" v-model="selectedVideo.datetime">
+                        </div>
+                        <div class="form-group">
+                            <label for="selectedLocation">Location</label>
+                            <input type="text" class="form-control" id="selectedLocation" v-model="selectedVideo.location.address">
+                                <div v-if="locations.length > 0">
+                                <div class="card pad" v-for="(location, index) in locations" @click="locationSet(location)" :key="location.address">
+                                    <div class="card-block">
+                                        <h4 class="card-title">{{location.address}}</h4>
+                                        <p class="card-text">{{location.lat}}, {{location.lng}}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else-if="selectedVideo.location.address.length > 0">
+                                <div class="card pad">
+                                    <div class="card-block">
+                                        <h4 class="card-title">Not found.</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-lg btn-block" @click="saveSelectedVideo">Save Video</button>
+                        <button type="button" class="btn btn-danger btn-lg btn-block" @click="deleteSelectedVideo">Delete Video</button>
+                    </form>
+                </div>
             </div>
-            <div class="col-6 full">
-                <div class="full" id="navermap" v-pre></div>
-            </div>
+        </div>
+        <div class="col-6 full">
+            <div class="full" id="navermap" v-pre></div>
         </div>
     </div>
 </template>
@@ -86,18 +84,18 @@ export default {
                     title: "Choose Video",
                     properties: ["openFile", "multiSelections"]
                 },
-                    files => {
+                (files) => {
                     let currentFiles = [];
                     for (let i = 0; i < this.videos.length; i++) {
                         currentFiles.push(this.videos[i].file);
                     }
                     for (let file of files) {
                         if (currentFiles.includes(file) === false) {
-                        currentFiles.push(file);
-                        this.videos.push(
-                            new Video(file, null, new Location("", null, null), "")
-                        );
-                        this.markers.push(null);
+                            currentFiles.push(file);
+                            this.videos.push(
+                                new Video(file, null, new Location("", null, null), "")
+                            );
+                            this.markers.push(null);
                         }
                     }
                 }

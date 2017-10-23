@@ -1,5 +1,7 @@
 <template>
-<div>This is Gallery.</div>
+<div class="row full">
+
+</div>
 </template>
 
 <script>
