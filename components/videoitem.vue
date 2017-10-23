@@ -1,6 +1,12 @@
 <template>
 <div>
-    <h2>{{shortFilename}}</h2>
+    <div v-if="address.length > 0">
+        <h3>{{address}}</h3>
+        <h3>{{datetime}}</h3>
+    </div>
+    <div v-else>
+        <h3>{{shortFilename}}</h3>
+    </div>
     <small>{{filename}}</small>
 </div>
 </template>
@@ -10,7 +16,15 @@ export default {
     props: {
         filename: {
             type: String,
-            default() { return ''; }
+            required: true
+        },
+        address: {
+            type: String,
+            default() { return ''; },
+        },
+        datetime: {
+            type: String,
+            default() { return ''; },
         }
     },
     computed: {
