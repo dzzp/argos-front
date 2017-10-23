@@ -65,14 +65,15 @@ import Location from "./location.js";
 export default {
     data: function() {
         return {
-        videos: [],
-        selectedVideoIndex: null,
-        selectedVideo: null,
+            videos: [],
+            selectedVideoIndex: null,
+            selectedVideo: null,
 
-        markers: [],
-        selectedMarker: null,
+            markers: [],
+            selectedMarker: null,
 
-        locations: []
+            locations: [],
+            navermap: null
         };
     },
     components: {
@@ -157,16 +158,17 @@ export default {
                 alert("Cannot analyze video.\n" + errors.join("\n"));
             } else {
                 if (confirm("Are you sure you want to stop adding videos?")) {
-                let reqVideos = [];
-                for (let i = 0; i < this.videos.length; i++) {
-                    reqVideos.push(this.videos[i].json());
-                }
-                let reqData = JSON.stringify({
-                    videos: reqVideos,
-                    code: "detect_request"
-                });
-                // TODO: SEND reqData
-                console.log(reqData);
+                    let reqVideos = [];
+                    for (let i = 0; i < this.videos.length; i++) {
+                        reqVideos.push(this.videos[i].json());
+                    }
+                    let reqData = JSON.stringify({
+                        videos: reqVideos,
+                        code: "detect_request"
+                    });
+                    // TODO: SEND reqData
+                    console.log(reqData);
+                    this.$router.push('loading');
                 }
             }
         },
@@ -180,10 +182,10 @@ export default {
             let position = new naver.maps.LatLng(location.lat, location.lng);
             this.selectedMarker = new naver.maps.Marker({
                 position: position,
-                map: __global_navermap
+                map: this.navermap
             });
             this.selectedMarker.setAnimation(naver.maps.Animation.BOUNCE);
-            __global_navermap.panTo(position);
+            this.navermap.panTo(position);
         },
         __navermap__callback(status, response) {
             this.locations = [];
@@ -203,11 +205,11 @@ export default {
     },
     computed: {
         selectedVideoFile: function() {
-        return this.selectedVideo.file.split('/').slice(-1)[0];
+            return this.selectedVideo.file.split('/').slice(-1)[0];
         },
         selectedAddress: function() {
-        if (this.selectedVideo === null) return '';
-        return this.selectedVideo.location.address;
+            if (this.selectedVideo === null) return '';
+            return this.selectedVideo.location.address;
         }
     },
     watch: {
@@ -215,6 +217,14 @@ export default {
             if(newVal === '') return;
             naver.maps.Service.geocode({ address: newVal }, this.__navermap__callback);
         }
+    },
+    mounted: function() {
+        this.navermap = new naver.maps.Map(
+            'navermap', {
+                center: new naver.maps.LatLng(37.3595704, 127.105399),
+                zoom: 10
+            }
+        );
     }
 };
 </script>
