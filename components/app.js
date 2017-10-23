@@ -12,7 +12,7 @@ Vue.use(VueRouter);
 const router = new VueRouter({
     routes: [
         { path: '/upload', component: upload_app },
-        { path: '/loading', component: loading_app },
+        { path: '/loading', component: loading_app, props: (route) => ({ nextRoute: route.query.nextRoute }) },
         { path: '/probe', component: probe_app },
         { path: '/gallery', component: gallery_app },
     ],

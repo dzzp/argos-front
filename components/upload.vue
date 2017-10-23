@@ -166,7 +166,10 @@ export default {
                     });
                     // TODO: SEND reqData
                     console.log(reqData);
-                    this.$router.push('loading');
+                    this.$router.push({
+                        path: 'loading',
+                        query: { nextRoute: 'probe' }
+                    });
                 }
             }
         },

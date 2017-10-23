@@ -20,6 +20,12 @@ export default {
             total: 100,
         }
     },
+    props: {
+        nextRoute: {
+            type: String,
+            required: true,
+        }
+    },
     computed: {
         loadingStyle: function() {
             return "width : " + Math.floor(this.current * 100 / this.total) + "%";
@@ -27,14 +33,17 @@ export default {
     },
     methods: {
         setStatus: function(response) {
+            console.log(this.nextRoute);
             // TODO: Do something with response
             this.current += 10;
             console.log(this.current);
-            setTimeout(this.getRequest, 1000);
 
             let done = (this.current >= this.total);
             if (done) {
-                this.$router.push('gallery');
+                this.$router.push(this.nextRoute);
+            }
+            else {
+                setTimeout(this.getRequest, 1000);
             }
         },
         getRequest: function() {
