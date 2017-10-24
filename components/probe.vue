@@ -1,5 +1,5 @@
 <template>
-    <div id="vueapp" class="row full">
+    <div class="row full">
         <div class="col-3 full pad scrollable">
             <button type="button" class="btn btn-primary btn-lg btn-block" @click="sendPeople">Send suspects</button>
             <div class="card pad" v-for="(video, index) in videos" :key="video.file"

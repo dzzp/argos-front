@@ -109,26 +109,23 @@ export default {
                 this.videos[index].location,
                 this.videos[index].memo
             ); // Deep copy
-            if (this.markers[index] !== null) this.markers[index].setAnimation(naver.maps.Animation.BOUNCE);
-            if (this.selectedMarker !== null) this.selectedMarker.setAnimation(null);
             this.selectedMarker = this.markers[index];
             this.locations = [];
         },
         saveSelectedVideo: function() {
-        if (this.selectedVideo !== null) {
-            let errors = this.selectedVideo.check();
-            if (errors.length > 0) {
-                alert("Cannot save video metadata.\n" + errors.join("\n"));
-                return;
+            if (this.selectedVideo !== null) {
+                let errors = this.selectedVideo.check();
+                if (errors.length > 0) {
+                    alert("Cannot save video metadata.\n" + errors.join("\n"));
+                    return;
+                }
+                this.videos.splice(this.selectedVideoIndex, 1, this.selectedVideo);
+                this.markers[this.selectedVideoIndex] = this.selectedMarker;
+                this.selectedVideoIndex = null;
+                this.selectedVideo = null;
+                this.selectedMarker = null;
+                this.locatons = [];
             }
-            this.videos.splice(this.selectedVideoIndex, 1, this.selectedVideo);
-            this.markers[this.selectedVideoIndex] = this.selectedMarker;
-            this.markers[this.selectedVideoIndex].setAnimation(null);
-            this.selectedVideoIndex = null;
-            this.selectedVideo = null;
-            this.selectedMarker = null;
-            this.locatons = [];
-        }
         },
         deleteSelectedVideo: function() {
             if (this.selectedVideoIndex !== null) {
@@ -138,8 +135,8 @@ export default {
                 this.selectedVideo = null;
                 this.locations = [];
                 if (this.selectedMarker !== null) {
-                this.selectedMarker.setMap(null);
-                this.selectedMarker = null;
+                    this.selectedMarker.setMap(null);
+                    this.selectedMarker = null;
                 }
             }
         },
@@ -149,7 +146,7 @@ export default {
                 let video = this.videos[i];
                 let videoErrors = video.check();
                 if (videoErrors.length > 0) {
-                errors = errors.concat([video.file], video.check(), [""]);
+                    errors = errors.concat([video.file], videoErrors, [""]);
                 }
             }
             if (errors.length > 0) {
@@ -185,7 +182,6 @@ export default {
                 position: position,
                 map: this.navermap
             });
-            this.selectedMarker.setAnimation(naver.maps.Animation.BOUNCE);
             this.navermap.panTo(position);
         },
         __navermap__callback(status, response) {
@@ -217,7 +213,11 @@ export default {
         selectedAddress: function(newVal, oldVal) {
             if(newVal === '') return;
             naver.maps.Service.geocode({ address: newVal }, this.__navermap__callback);
-        }
+        },
+        selectedMarker: function(newVal, oldVal) {
+            if(oldVal !== null) oldVal.setAnimation(null);
+            if(newVal !== null) newVal.setAnimation(naver.maps.Animation.BOUNCE);
+        },
     },
     mounted: function() {
         this.navermap = new naver.maps.Map(

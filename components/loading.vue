@@ -35,7 +35,7 @@ export default {
         setStatus: function(response) {
             console.log(this.nextRoute);
             // TODO: Do something with response
-            this.current += 10;
+            this.current += 50;
             console.log(this.current);
 
             let done = (this.current >= this.total);
@@ -43,7 +43,7 @@ export default {
                 this.$router.push(this.nextRoute);
             }
             else {
-                setTimeout(this.getRequest, 1000);
+                setTimeout(this.getRequest, 100);
             }
         },
         getRequest: function() {
