@@ -65,14 +65,14 @@ export default {
         .then(this.__callback_set_cases);
     },
     loadCase(index) {
-      __global__.data.caseHash = this.cases[index].hash;
+      __global__.method.setCase(this.cases[index]);
       this.$router.push("upload");
     },
     __callback_set_cases: function(response) {
       this.cases = response.data.cases;
     },
     __callback_new_case: function(response) {
-      __global__.data.caseHash = response.data.hash;
+      __global__.method.setCase(response.data);
       this.$router.push("upload");
     }
   },
@@ -259,17 +259,32 @@ body {
   margin: 0;
   padding: 0;
   position: relative;
-  background-color: #2698bf;
-  color: #fff;
+  background-color: white;
+  color: #2698BF;
   font-weight: bold;
   font-size: 1.3em;
   border-radius: 10px;
+  border-style: solid;
+}
+
+.fix:hover{
+	background-color:#2698BF;
+	color:#fff;
+	border-style: solid;
+	border-color: #2698BF;
 }
 
 .jo {
   margin-top: 3%;
+	background-color:white;
+	color:#25BFBC;
+}
+
+button.jo:hover{
+  margin-top: 3%;
   background-color: #25bfbc;
   color: #fff;
+  border-color: #25BFBC;
 }
 
 input {

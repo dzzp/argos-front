@@ -1,7 +1,7 @@
 var __global__ = {
     data: {
-        URL: 'http://172.16.101.125:8000/',
-        caseHash: ''
+        URL: 'http://localhost:8000/',
+        case: null,
     },
     method: {
         getUrl: (params) => {
@@ -11,6 +11,9 @@ var __global__ = {
                 if (params[i][0] !== '?') ret += '/';
             }
             return ret;
+        },
+        setCase: (c) => {
+            __global__.data.case = c;
         }
     }
 };
