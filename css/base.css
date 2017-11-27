@@ -8,14 +8,6 @@ body {
 }
 
 .full {
-    text-align: center;
+    width: 100%;
     height: 100%;
-}
-
-.scrollable {
-    overflow-y: scroll;
-}
-
-.pad {
-    padding: 10px 10px 10px 10px;
 }
