@@ -68,10 +68,10 @@ export default {
       __global__.method.setCase(this.cases[index]);
       this.$router.push("upload");
     },
-    __callback_set_cases: function(response) {
+    __callback_set_cases(response) {
       this.cases = response.data.cases;
     },
-    __callback_new_case: function(response) {
+    __callback_new_case(response) {
       __global__.method.setCase(response.data);
       this.$router.push("upload");
     }
@@ -176,17 +176,14 @@ video {
   font-size: 100%;
   vertical-align: baseline;
 }
-
 body {
   width: 100%;
   height: 100%;
 }
-
 * {
   font-family: "Noto Sans KR", sans-serif;
   position: relative;
 }
-
 #new {
   top: 0;
   margin: 0.5%;
@@ -197,7 +194,6 @@ body {
   float: left;
   box-shadow: 0px 3px 10px #777;
 }
-
 #search {
   top: 0;
   margin: 0.5% 0;
@@ -238,20 +234,17 @@ body {
   line-height: 50px;
   box-shadow: 0px 1px 5px #777;
 }
-
 .header div {
   width: 50%;
 }
-
 .colorh {
   background-color: #2698bf;
 }
-
 .colorb {
   background-color: #25bfbc;
 }
-
 .fix {
+  left: calc((50vw - 200px)/2);
   border: none;
   width: 200px;
   height: 50px;
@@ -260,33 +253,29 @@ body {
   padding: 0;
   position: relative;
   background-color: white;
-  color: #2698BF;
+  color: #2698bf;
   font-weight: bold;
   font-size: 1.3em;
   border-radius: 10px;
   border-style: solid;
 }
-
-.fix:hover{
-	background-color:#2698BF;
-	color:#fff;
-	border-style: solid;
-	border-color: #2698BF;
+.fix:hover {
+  background-color: #2698bf;
+  color: #fff;
+  border-style: solid;
+  border-color: #2698bf;
 }
-
 .jo {
   margin-top: 3%;
-	background-color:white;
-	color:#25BFBC;
+  background-color: white;
+  color: #25bfbc;
 }
-
-button.jo:hover{
+button.jo:hover {
   margin-top: 3%;
   background-color: #25bfbc;
   color: #fff;
-  border-color: #25BFBC;
+  border-color: #25bfbc;
 }
-
 input {
   position: relative;
   text-indent: 10px;
@@ -323,22 +312,18 @@ textarea.memo {
   border-bottom-color: #2698bf;
   border-bottom-style: inset;
 }
-
 li {
   width: 10%;
   list-style: none;
   vertical-align: middle;
 }
-
 ul {
   width: 100%;
   float: left;
 }
-
 .list {
   width: 100%;
 }
-
 span {
   position: relative;
   display: inline-block;
@@ -346,7 +331,6 @@ span {
   vertical-align: middle;
   line-height: normal;
 }
-
 li {
   text-align: center;
   width: calc(99.3vw/7);
@@ -356,12 +340,10 @@ li {
   border-right: 0.1vw #eee;
   margin-right: 0.1vw;
 }
-
 .head {
   font-weight: 700;
   font-size: 20px;
 }
-
 .black {
   background: #1a1818;
 }
@@ -403,7 +385,6 @@ li {
 li:nth-child(2n) {
   background: white;
 }
-
 li:nth-child(2n-1) {
   background: #eee;
 }
