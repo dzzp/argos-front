@@ -1,235 +1,1557 @@
 <template>
-    <div class="row full">
-        <div class="col-6 full">
-            <div class="row full">
-                <div class="col-6 full pad scrollable">
-                    <button type="button" class="btn btn-primary btn-lg btn-block" @click="sendVideos">Analyze Videos</button>
-                    <button type="button" class="btn btn-primary btn-lg btn-block" @click="fileDialog">Add Video</button>
-                    <div class="card pad" v-for="(video, index) in videos" :key="video.file"
-                            v-on:click="fileOpen(index)" v-bind:class="{'bg-secondary' : index === selectedVideoIndex}">
-                        <videoitem class="card-block" :filename="video.file"> </videoitem>
-                    </div>
-                </div>
-                <div class="col-6 full pad scrollable">
-                    <form v-if="selectedVideo !== null">
-                        <div class="form-group">
-                            <label for="inputFile">File name</label>
-                            <input type="text" class="form-control" id="inputFile" v-bind:placeholder="selectedVideoFile" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label for="inputMemo">Memo</label>
-                            <input type="text" class="form-control" id="inputMemo" v-model="selectedVideo.memo">
-                        </div>
-                        <div class="form-group">
-                            <label for="inputDatetime">Datetime</label>
-                            <input type="datetime-local" class="form-control" id="inputDatetime" step="1" v-model="selectedVideo.datetime">
-                        </div>
-                        <div class="form-group">
-                            <label for="selectedLocation">Location</label>
-                            <input type="text" class="form-control" id="selectedLocation" v-model="selectedVideo.location.address">
-                                <div v-if="locations.length > 0">
-                                <div class="card pad" v-for="(location, index) in locations" @click="locationSet(location)" :key="location.address">
-                                    <div class="card-block">
-                                        <h4 class="card-title">{{location.address}}</h4>
-                                        <p class="card-text">{{location.lat}}, {{location.lng}}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-else-if="selectedVideo.location.address.length > 0">
-                                <div class="card pad">
-                                    <div class="card-block">
-                                        <h4 class="card-title">Not found.</h4>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-primary btn-lg btn-block" @click="saveSelectedVideo">Save Video</button>
-                        <button type="button" class="btn btn-danger btn-lg btn-block" @click="deleteSelectedVideo">Delete Video</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 full">
-            <div class="full" id="navermap" v-pre></div>
-        </div>
+  <div class="full">
+    <div id="popup" v-bind:class="{invisiblePopup: (editableVideoIndex < 0)}">
+      <div @click="editableVideoIndex = -1" class="exit"></div>
+      <div class="popup">
+        <div class="pop_title"><span>Video의 메타데이터 수정</span></div>
+          <div class="datepick">
+            <div>일시</div>
+            <input type="text" id="datetimepicker" placeholder="일시를 입력하세요">
+          </div>
+          <div class="datepick">
+            <div>위치</div>
+            <input type="list" id="autocomplete" placeholder="위치를 검색하세요">
+          </div>
+          <div id="navermap" class="map" v-pre></div>
+      </div>
+      <div class="button">
+        <div @click="editableVideoIndex = -1">취소</div>
+        <div @click="editVideo()">적용</div>
+      </div>
     </div>
+    <div id="name">{{caseTitle}} {{caseDateTime}} ({{caseMemo}})</div>
+    <div id="upload">
+      <button class="left_button"></button>
+      <button class="right_button">분석 중 ( 10 / 30 )</button>
+      <div class="do">
+        <div class="select">
+          <div class="file_meta">
+            <span>video video</span>
+            <span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span>
+          </div>
+          <div @click="editableVideoIndex = 0" class="file_edit"></div>
+        </div>
+        <div class="have-select"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class=""><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class=""><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class=""><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
+      </div>
+    </div>
+    <div id="list">
+      <div class="title2">시간 설정 그래프</div>
+      <ul>
+        <li><div class="select"><span>출현 시간</span></div></li>
+        <li><div><span>출현 시간</span></div></li>
+        <li><div><span>출현 시간</span></div></li>
+      </ul>
+    </div>
+  </div>
 </template>
 
 <script>
+import axios from "axios";
+import $ from "jquery";
+import "jquery-datetimepicker";
+
+export default {
+	data: function() {
+		return {
+			caseTitle: '',
+			caseDateTime: '',
+			caseMemo: '',
+
+      videos: [],
+
+      datetimeInput: '',
+      navermap: null,
+      
+      editableVideoIndex: -1
+		};
+	},
+	methods: {
+    newVideos() {
+      require("electron").remote.dialog.showOpenDialog(
+        {
+          title: "Choose Video",
+          properties: ["openFile", "multiSelections"]
+        },
+        files => {
+          /*
+          let currentFiles = [];
+          for (let i = 0; i < this.videos.length; i++) {
+            currentFiles.push(this.videos[i].file);
+          }
+          for (let file of files) {
+            if (currentFiles.includes(file) === false) {
+              currentFiles.push(file);
+              this.videos.push(
+                new Video(file, null, new Location("", null, null), "")
+              );
+              this.markers.push(null);
+            }
+          }
+          */
+          console.log(files);
+        }
+      );
+    },
+    editVideo() {
+      this.editableVideoIndex = -1;
+    },
+		__callback_set_videos: function(response) {
+			this.videos = response.data.videos;
+		}
+  },
+  watch: {
+    editableVideoIndex: function(now, pre) {
+      if (now == -1 && pre > -1) {
+        console.log(this.datetimeInput);
+      }
+    }
+  },
+	mounted: function() {
+		this.caseTitle = __global__.data.case.title;
+		this.caseDateTime = __global__.data.case.datetime;
+    this.caseMemo = __global__.data.case.memo;
+    
+    $("#datetimepicker").datetimepicker({
+      step: 1,
+      format: "Y-m-d H:i"
+    });
+    this.navermap = new naver.maps.Map("navermap", {
+      center: new naver.maps.LatLng(37.3595704, 127.105399),
+      zoom: 10
+    });
+
+    axios
+		  .get(__global__.method.getUrl(["cases", __global__.data.case.hash, "videos"]))
+      .then(this.__callback_set_videos);
+	}
+}
+/*
 import videoitem from "./videoitem.vue";
 import Video from "./video.js";
 import Location from "./location.js";
 
 export default {
-    data: function() {
-        return {
-            videos: [],
-            selectedVideoIndex: null,
-            selectedVideo: null,
+  data: function() {
+    return {
+      videos: [],
+      selectedVideoIndex: null,
+      selectedVideo: null,
 
-            markers: [],
-            selectedMarker: null,
+      markers: [],
+      selectedMarker: null,
 
-            locations: [],
-            navermap: null
-        };
-    },
-    components: {
-        videoitem: videoitem
-    },
-    methods: {
-        fileDialog: function() {
-            require("electron").remote.dialog.showOpenDialog(
-                {
-                    title: "Choose Video",
-                    properties: ["openFile", "multiSelections"]
-                },
-                (files) => {
-                    let currentFiles = [];
-                    for (let i = 0; i < this.videos.length; i++) {
-                        currentFiles.push(this.videos[i].file);
-                    }
-                    for (let file of files) {
-                        if (currentFiles.includes(file) === false) {
-                            currentFiles.push(file);
-                            this.videos.push(
-                                new Video(file, null, new Location("", null, null), "")
-                            );
-                            this.markers.push(null);
-                        }
-                    }
-                }
-            );
+      locations: [],
+      navermap: null
+    };
+  },
+  components: {
+    videoitem: videoitem
+  },
+  methods: {
+    fileDialog: function() {
+      require("electron").remote.dialog.showOpenDialog(
+        {
+          title: "Choose Video",
+          properties: ["openFile", "multiSelections"]
         },
-        fileOpen: function(index) {
-            this.selectedVideoIndex = index;
-            this.selectedVideo = new Video(
-                this.videos[index].file,
-                this.videos[index].datetime,
-                this.videos[index].location,
-                this.videos[index].memo
-            ); // Deep copy
-            this.selectedMarker = this.markers[index];
-            this.locations = [];
-        },
-        saveSelectedVideo: function() {
-            if (this.selectedVideo !== null) {
-                let errors = this.selectedVideo.check();
-                if (errors.length > 0) {
-                    alert("Cannot save video metadata.\n" + errors.join("\n"));
-                    return;
-                }
-                this.videos.splice(this.selectedVideoIndex, 1, this.selectedVideo);
-                this.markers[this.selectedVideoIndex] = this.selectedMarker;
-                this.selectedVideoIndex = null;
-                this.selectedVideo = null;
-                this.selectedMarker = null;
-                this.locatons = [];
+        files => {
+          let currentFiles = [];
+          for (let i = 0; i < this.videos.length; i++) {
+            currentFiles.push(this.videos[i].file);
+          }
+          for (let file of files) {
+            if (currentFiles.includes(file) === false) {
+              currentFiles.push(file);
+              this.videos.push(
+                new Video(file, null, new Location("", null, null), "")
+              );
+              this.markers.push(null);
             }
-        },
-        deleteSelectedVideo: function() {
-            if (this.selectedVideoIndex !== null) {
-                this.videos.splice(this.selectedVideoIndex, 1);
-                this.markers.splice(this.selectedVideoIndex, 1);
-                this.selectedVideoIndex = null;
-                this.selectedVideo = null;
-                this.locations = [];
-                if (this.selectedMarker !== null) {
-                    this.selectedMarker.setMap(null);
-                    this.selectedMarker = null;
-                }
-            }
-        },
-        sendVideos: function() {
-            let errors = [];
-            for (let i = 0; i < this.videos.length; i++) {
-                let video = this.videos[i];
-                let videoErrors = video.check();
-                if (videoErrors.length > 0) {
-                    errors = errors.concat([video.file], videoErrors, [""]);
-                }
-            }
-            if (errors.length > 0) {
-                alert("Cannot analyze video.\n" + errors.join("\n"));
-            } else {
-                if (confirm("Are you sure you want to stop adding videos?")) {
-                    let reqVideos = [];
-                    for (let i = 0; i < this.videos.length; i++) {
-                        reqVideos.push(this.videos[i].json());
-                    }
-                    let reqData = JSON.stringify({
-                        videos: reqVideos,
-                        code: "detect_request"
-                    });
-                    // TODO: SEND reqData
-                    console.log(reqData);
-                    this.$router.push({
-                        path: 'loading',
-                        query: { nextRoute: 'probe' }
-                    });
-                }
-            }
-        },
-        locationSet: function(location) {
-            this.selectedVideo.location = new Location(
-                location.address,
-                location.lat,
-                location.lng
-            );
-            if (this.selectedMarker !== null) this.selectedMarker.setMap(null);
-            let position = new naver.maps.LatLng(location.lat, location.lng);
-            this.selectedMarker = new naver.maps.Marker({
-                position: position,
-                map: this.navermap
-            });
-            this.navermap.panTo(position);
-        },
-        __navermap__callback(status, response) {
-            this.locations = [];
-            if (status === naver.maps.Service.Status.ERROR) {
-                return;
-            }
-            for (let i = 0; i < response.result.total; i++) {
-                this.locations.push(
-                    new Location(
-                        response.result.items[i].address,
-                        response.result.items[i].point.y,
-                        response.result.items[i].point.x
-                    )
-                );
-            }
+          }
         }
+      );
     },
-    computed: {
-        selectedVideoFile: function() {
-            return this.selectedVideo.file.split('/').slice(-1)[0];
-        },
-        selectedAddress: function() {
-            if (this.selectedVideo === null) return '';
-            return this.selectedVideo.location.address;
+    fileOpen: function(index) {
+      this.selectedVideoIndex = index;
+      this.selectedVideo = new Video(
+        this.videos[index].file,
+        this.videos[index].datetime,
+        this.videos[index].location,
+        this.videos[index].memo
+      ); // Deep copy
+      this.selectedMarker = this.markers[index];
+      this.locations = [];
+    },
+    saveSelectedVideo: function() {
+      if (this.selectedVideo !== null) {
+        let errors = this.selectedVideo.check();
+        if (errors.length > 0) {
+          alert("Cannot save video metadata.\n" + errors.join("\n"));
+          return;
         }
+        this.videos.splice(this.selectedVideoIndex, 1, this.selectedVideo);
+        this.markers[this.selectedVideoIndex] = this.selectedMarker;
+        this.selectedVideoIndex = null;
+        this.selectedVideo = null;
+        this.selectedMarker = null;
+        this.locatons = [];
+      }
     },
-    watch: {
-        selectedAddress: function(newVal, oldVal) {
-            if(newVal === '') return;
-            naver.maps.Service.geocode({ address: newVal }, this.__navermap__callback);
-        },
-        selectedMarker: function(newVal, oldVal) {
-            if(oldVal !== null) oldVal.setAnimation(null);
-            if(newVal !== null) newVal.setAnimation(naver.maps.Animation.BOUNCE);
-        },
+    deleteSelectedVideo: function() {
+      if (this.selectedVideoIndex !== null) {
+        this.videos.splice(this.selectedVideoIndex, 1);
+        this.markers.splice(this.selectedVideoIndex, 1);
+        this.selectedVideoIndex = null;
+        this.selectedVideo = null;
+        this.locations = [];
+        if (this.selectedMarker !== null) {
+          this.selectedMarker.setMap(null);
+          this.selectedMarker = null;
+        }
+      }
     },
-    mounted: function() {
-        this.navermap = new naver.maps.Map(
-            'navermap', {
-                center: new naver.maps.LatLng(37.3595704, 127.105399),
-                zoom: 10
-            }
+    sendVideos: function() {
+      let errors = [];
+      for (let i = 0; i < this.videos.length; i++) {
+        let video = this.videos[i];
+        let videoErrors = video.check();
+        if (videoErrors.length > 0) {
+          errors = errors.concat([video.file], videoErrors, [""]);
+        }
+      }
+      if (errors.length > 0) {
+        alert("Cannot analyze video.\n" + errors.join("\n"));
+      } else {
+        if (confirm("Are you sure you want to stop adding videos?")) {
+          let reqVideos = [];
+          for (let i = 0; i < this.videos.length; i++) {
+            reqVideos.push(this.videos[i].json());
+          }
+          let reqData = JSON.stringify({
+            videos: reqVideos,
+            code: "detect_request"
+          });
+          // TODO: SEND reqData
+          console.log(reqData);
+          this.$router.push({
+            path: "loading",
+            query: { nextRoute: "probe" }
+          });
+        }
+      }
+    },
+    locationSet: function(location) {
+      this.selectedVideo.location = new Location(
+        location.address,
+        location.lat,
+        location.lng
+      );
+      if (this.selectedMarker !== null) this.selectedMarker.setMap(null);
+      let position = new naver.maps.LatLng(location.lat, location.lng);
+      this.selectedMarker = new naver.maps.Marker({
+        position: position,
+        map: this.navermap
+      });
+      this.navermap.panTo(position);
+    },
+    __navermap__callback(status, response) {
+      this.locations = [];
+      if (status === naver.maps.Service.Status.ERROR) {
+        return;
+      }
+      for (let i = 0; i < response.result.total; i++) {
+        this.locations.push(
+          new Location(
+            response.result.items[i].address,
+            response.result.items[i].point.y,
+            response.result.items[i].point.x
+          )
         );
+      }
     }
+  },
+  computed: {
+    selectedVideoFile: function() {
+      return this.selectedVideo.file.split("/").slice(-1)[0];
+    },
+    selectedAddress: function() {
+      if (this.selectedVideo === null) return "";
+      return this.selectedVideo.location.address;
+    }
+  },
+  watch: {
+    selectedAddress: function(newVal, oldVal) {
+      if (newVal === "") return;
+      naver.maps.Service.geocode(
+        { address: newVal },
+        this.__navermap__callback
+      );
+    },
+    selectedMarker: function(newVal, oldVal) {
+      if (oldVal !== null) oldVal.setAnimation(null);
+      if (newVal !== null) newVal.setAnimation(naver.maps.Animation.BOUNCE);
+    }
+  },
+  mounted: function() {
+    this.navermap = new naver.maps.Map("navermap", {
+      center: new naver.maps.LatLng(37.3595704, 127.105399),
+      zoom: 10
+    });
+  }
 };
+*/
 </script>
 
 <style scoped>
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+  overflow: hidden;
+}
+* {
+  position: relative;
+}
+#new {
+  top: 0;
+  margin: 0;
+  padding: 0;
+  width: 50%;
+  height: 80vh;
+  position: relative;
+  position: fixed;
+  z-index: 100;
+  background-color: #415466;
+}
+#search {
+  top: 0;
+  left: 50vw;
+  margin: 0;
+  padding: 0;
+  width: 50%;
+  height: 80vh;
+  position: relative;
+  position: fixed;
+  z-index: 10;
+  background-color: #66545d;
+}
+#lower {
+  top: 80vh;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 20vh;
+  position: relative;
+  position: fixed;
+  z-index: 10;
+  background-color: #3b3732;
+}
+#popup {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+  display: block;
+  text-align: center;
+}
+.left_button {
+  border: none;
+  width: calc(100vw/3/2 - 3px);
+  height: 6vh;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 120;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.5em;
+  line-height: 6vh;
+  box-shadow: 0px 4px 3px #888888;
+  border: 0.2px solid #127597;
+  background: url(../images/upload_c.png) no-repeat white;
+  background-size: 6.4vh 4vh;
+  background-position: center;
+}
+.left_button:hover {
+  background: url(../images/upload.png) no-repeat #218db7;
+  background-size: 6.4vh 4vh;
+  background-position: center;
+}
+.right_button {
+  float: right;
+  border: none;
+  width: calc(100vw/3/2 - 3px);
+  height: 6vh;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 120;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1em;
+  line-height: 6vh;
+  box-shadow: 0px 4px 3px #888888;
+  background: #253746;
+}
+.right_button:hover {
+  background: #218db7;
+}
 
+.invisiblePopup {
+  visibility: hidden;
+}
+
+.header div {
+  width: 50%;
+}
+.colorh {
+  background-color: #253746;
+}
+.colorb {
+  background-color: #462535;
+}
+.bottom_button {
+  border: none;
+  width: calc(100vw/3);
+  height: 6vh;
+  margin: 0 0 0.5vh 0;
+  padding: 0;
+  bottom: 0.5vh;
+  position: fixed;
+  z-index: 120;
+
+  background-color: #253746;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1em;
+  box-shadow: 0px 1px 10px #888888;
+}
+.waiting {
+  font-weight: 400;
+  background-color: #404040;
+  color: #fff;
+}
+.final {
+  background-color: #336e9f;
+  color: #fff;
+}
+input {
+  text-indent: 10px;
+  margin: 0 5% 0 5%;
+  width: 75%;
+  border: 0;
+  padding: 10;
+  height: 80px;
+  color: #4a4a4a;
+  font-size: 0.875em;
+  background-color: white;
+  border-bottom: 2px;
+  border-bottom-color: deepskyblue;
+  border-bottom-style: inset;
+}
+input.name {
+  top: 19vh;
+}
+input.time {
+  top: 32vh;
+}
+textarea.memo {
+  padding-top: 2%;
+  font-family: Arial;
+  text-indent: 10px;
+  margin: 0 5%;
+  width: 90%;
+  border: 0;
+  color: #4a4a4a;
+  font-size: 0.875em;
+  background-color: white;
+  top: 45vh;
+  height: 18%;
+  resize: none;
+}
+li {
+  width: 10%;
+  list-style: none;
+  vertical-align: middle;
+}
+ul {
+  width: 100%;
+  height: 88vh;
+  float: left;
+  position: relative;
+}
+.list {
+  width: 100%;
+}
+.do div span {
+  margin: 0 1vw;
+  line-height: 4.4vh;
+}
+.do div.file_meta:hover {
+  filter: brightness(50%);
+  filter: invert(30%);
+}
+span {
+  position: relative;
+  display: inline-block;
+  text-align: center;
+  vertical-align: middle;
+  line-height: normal;
+}
+.loading span {
+  width: 41.5vw;
+  font-weight: 600;
+  font-size: 3em;
+  color: white;
+  line-height: 10vh;
+}
+li {
+  line-height: 20vh;
+  text-align: center;
+  width: calc(41vw/6);
+  height: 15vh;
+  color: white;
+  background: #5b5b5b;
+  border-right: 0.1vw #eee;
+  margin-left: 1.132vw;
+}
+
+second div {
+  width: calc(100vw/4);
+}
+div#list {
+  float: left;
+  position: relative;
+  width: calc(65vw);
+  height: calc(95.5vh - 4px);
+  margin: 0.5vh 0;
+  z-index: 100;
+  box-sizing: border-box;
+  box-shadow: 0px 0px 10px #999;
+  border-color: #2698bf;
+  border-width: 2px 2px 2px 2px;
+  border-style: solid;
+}
+ul {
+  margin: 0 0 0 0;
+  overflow-y: auto;
+}
+
+ul li {
+  position: relative;
+  float: left;
+  margin-top: 1vh;
+  box-shadow: 1px 1px 3px #888888;
+}
+.sec {
+  left: calc(100%/3);
+}
+.do {
+  width: calc(100vw/3);
+  height: calc(100% - 6.5vh);
+  top: vh;
+  background: #ddd;
+  overflow-y: auto;
+}
+#upload {
+  position: relative;
+  float: left;
+  width: calc(100vw/3);
+  height: 95vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin: 0.5vh 0.5vw;
+  box-shadow: 0px 0px 10px #999;
+}
+#upload div div {
+  left: 0;
+  position: relative;
+  background: #fff;
+  margin-bottom: 1px;
+  width: calc(100vw/3);
+  height: calc(4.4vh);
+}
+.do div span:first-child {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.do div span:last-of-type {
+  font-weight: 300;
+  font-size: 0.7em;
+}
+
+.divide {
+  position: fixed;
+  height: 100vh;
+  width: 0.1vw;
+  background: #ddd;
+  left: 25vw;
+}
+
+.divide02 {
+  position: fixed;
+  height: 100vh;
+  width: 0.1vw;
+  background: #ddd;
+  left: calc(25vw + 100vw/3);
+}
+
+#upload .do div.select div.file_meta {
+  background: #2698bf;
+  color: white;
+}
+
+#upload .do div.have-select div.file_meta {
+  background: #96becc;
+  color: white;
+}
+#upload .do div.deact div.file_meta {
+  background: #eee;
+}
+
+.datepick {
+  float: left;
+  width: 100%;
+  height: auto;
+  margin-top: 5%;
+}
+
+#third {
+  float: left;
+  width: calc(73.5vw);
+  height: 25vh;
+  position: relative;
+  margin-top: 0.5vh;
+  box-sizing: border-box;
+  box-shadow: 0px 0px 10px #999;
+}
+
+.loading {
+  left: 0.2vw;
+  position: relative;
+  width: 41.2vw;
+  height: 10vh;
+  background: #4aa9eb;
+  bottom: 0;
+  box-shadow: 1px 1px 3px #888888;
+}
+
+ul li:nth-child(1) {
+  background: no-repeat center #646464;
+  background-size: contain;
+}
+
+li div {
+  width: 100%;
+  height: 20%;
+  top: 80%;
+  background: white;
+}
+li div.select {
+  background: #2698bf;
+}
+li div.select span {
+  color: white;
+}
+
+ul li div span {
+  color: black;
+  font-weight: 600;
+  margin-top: -17vh;
+}
+
+.mappick {
+  width: calc(100vw / 17 * 5);
+  height: 10vh;
+  float: left;
+}
+
+.button {
+  position: relative;
+  background: white;
+  top: 14%;
+  width: 30%;
+  height: 5%;
+  margin: auto;
+  padding-bottom: 10px;
+}
+
+.title {
+  z-index: 10;
+  width: 75vw;
+  height: 6vh;
+  background: #2698bf;
+  color: white;
+  box-shadow: 0px 2px 5px #888888;
+}
+div.title2 {
+  position: relative;
+  z-index: 0;
+  width: calc(73.5vw - 4px);
+  height: calc(10vh);
+  background: white;
+  color: white;
+  box-shadow: 0px 2px 5px #888888;
+}
+
+.title span {
+  width: 100%;
+  height: 100%;
+  line-height: 6vh;
+  font-weight: 600;
+  font-size: 1.2em;
+}
+
+.save {
+  width: 40%;
+  height: 50%;
+  margin: 0 0 0 calc(2vw);
+  padding: 0;
+  background-color: white;
+  color: #2698bf;
+  font-weight: bold;
+  font-size: 1em;
+  border-color: #2698bf;
+  border-style: solid;
+  border-width: medium;
+}
+
+.save:hover {
+  background-color: #2698bf;
+  color: white;
+}
+
+#third div div {
+  text-indent: 10px;
+  margin: 0 0 0 2%;
+  width: 40px;
+  padding: 1.5%;
+  top: 2vh;
+  border: 0;
+  height: 100%;
+  color: #4a4a4a;
+  font-size: 1em;
+  font-weight: bold;
+  background-color: white;
+  float: left;
+}
+
+.timepick {
+  float: left;
+  width: calc(100vw / 17 * 3);
+  height: 10vh;
+}
+
+div.timepick input {
+  height: 40%;
+}
+div.datepick input {
+  float: left;
+  height: 40px;
+}
+.popup {
+  display: inline-block;
+  width: 30%;
+  height: 60%;
+  top: 15vh;
+  background: #ffffff;
+}
+
+div.popup ul {
+  width: 100%;
+  height: 100%;
+}
+
+.pop_title {
+  width: 100%;
+  height: 70px;
+  background: #2698bf;
+  color: white;
+  box-shadow: 0px 3px 5px 0px #999;
+  z-index: 10;
+}
+
+.pop_title span {
+  font-size: 25px;
+  font-weight: bold;
+  height: 70px;
+  line-height: 70px;
+}
+
+.datepick div {
+  margin-left: 5%;
+  width: auto;
+  float: left;
+  font-size: 100%;
+  font-weight: bold;
+  height: 40px;
+  line-height: 40px;
+}
+
+.map {
+  width: 90%;
+  top: 5%;
+  height: calc(55%);
+  margin: 5%;
+  background: #2698bf;
+}
+
+div.button div {
+  margin-left: calc((10%)/3);
+  float: left;
+  width: calc(45% - 4px);
+  height: calc(100% - 4px);
+  line-height: 50px;
+  font-size: 150%;
+  font-weight: bold;
+  color: #2698bf;
+  border-color: #2698bf;
+  border-style: solid;
+  border-width: 2px;
+}
+
+div.button div:hover {
+  background: #2698bf;
+  color: white;
+}
+
+.exit {
+  position: fixed;
+  background: url(../images/exit.png) no-repeat;
+  background-size: contain;
+  width: 40px;
+  height: 40px;
+  top: 20px;
+  right: 20px;
+}
+
+div#name {
+  position: relative;
+  float: left;
+  width: 99vw;
+  height: 2.5vh;
+  margin: 0.5vh 0.5vw;
+  background: #21303e;
+  color: #fff;
+  line-height: 2.5vh;
+  font-size: 1.2vh;
+  text-align: center;
+}
+
+#upload .do div div.file_edit {
+  position: relative;
+  /* border-left: 0.5px solid #ddd; */
+  width: calc(4.4vh - 0.5px);
+  height: 4.4vh;
+  background: url(../images/edit.png) no-repeat white center;
+  background-size: 3vh;
+}
+#upload .do div.select div.file_edit {
+  background: url(../images/edit_s.png) no-repeat white center;
+  background-size: 3vh;
+}
+#upload .do div.have-select div.file_edit {
+  background: url(../images/edit_h.png) no-repeat white center;
+  background-size: 3vh;
+}
+
+div.file_edit:hover {
+  filter: brightness(50%);
+  filter: invert(30%);
+}
+
+div.file_meta {
+  position: relative;
+  float: left;
+  width: calc(100% - 4.4vh) !important;
+}
+
+#list ul li span {
+  font-size: 0.7em;
+}
+
+#list ul li:hover div {
+  background: #56bae1;
+}
+#list ul li:hover div span {
+  color: white;
+}
+</style>
+
+<style>
+.xdsoft_datetimepicker {
+  box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.506);
+  background: #fff;
+  border-bottom: 1px solid #bbb;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-top: 1px solid #ccc;
+  color: #333;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding: 8px;
+  padding-left: 0;
+  padding-top: 2px;
+  position: absolute;
+  z-index: 9999;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: none;
+}
+.xdsoft_datetimepicker.xdsoft_rtl {
+  padding: 8px 0 8px 8px;
+}
+.xdsoft_datetimepicker iframe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 75px;
+  height: 210px;
+  background: transparent;
+  border: 0;
+}
+.xdsoft_datetimepicker button {
+  border: none !important;
+}
+.xdsoft_noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+.xdsoft_noselect::selection {
+  background: transparent;
+}
+.xdsoft_noselect::-moz-selection {
+  background: transparent;
+}
+.xdsoft_datetimepicker.xdsoft_inline {
+  display: inline-block;
+  position: static;
+  box-shadow: none;
+}
+.xdsoft_datetimepicker * {
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+.xdsoft_datetimepicker .xdsoft_datepicker,
+.xdsoft_datetimepicker .xdsoft_timepicker {
+  display: none;
+}
+.xdsoft_datetimepicker .xdsoft_datepicker.active,
+.xdsoft_datetimepicker .xdsoft_timepicker.active {
+  display: block;
+}
+.xdsoft_datetimepicker .xdsoft_datepicker {
+  width: 224px;
+  float: left;
+  margin-left: 8px;
+}
+.xdsoft_datetimepicker.xdsoft_rtl .xdsoft_datepicker {
+  float: right;
+  margin-right: 8px;
+  margin-left: 0;
+}
+.xdsoft_datetimepicker.xdsoft_showweeks .xdsoft_datepicker {
+  width: 256px;
+}
+.xdsoft_datetimepicker .xdsoft_timepicker {
+  width: 58px;
+  float: left;
+  text-align: center;
+  margin-left: 8px;
+  margin-top: 0;
+}
+.xdsoft_datetimepicker.xdsoft_rtl .xdsoft_timepicker {
+  float: right;
+  margin-right: 8px;
+  margin-left: 0;
+}
+.xdsoft_datetimepicker .xdsoft_datepicker.active + .xdsoft_timepicker {
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+.xdsoft_datetimepicker .xdsoft_monthpicker {
+  position: relative;
+  text-align: center;
+}
+.xdsoft_datetimepicker .xdsoft_label i,
+.xdsoft_datetimepicker .xdsoft_prev,
+.xdsoft_datetimepicker .xdsoft_next,
+.xdsoft_datetimepicker .xdsoft_today_button {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAeCAYAAADaW7vzAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6Q0NBRjI1NjM0M0UwMTFFNDk4NkFGMzJFQkQzQjEwRUIiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6Q0NBRjI1NjQ0M0UwMTFFNDk4NkFGMzJFQkQzQjEwRUIiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpDQ0FGMjU2MTQzRTAxMUU0OTg2QUYzMkVCRDNCMTBFQiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpDQ0FGMjU2MjQzRTAxMUU0OTg2QUYzMkVCRDNCMTBFQiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PoNEP54AAAIOSURBVHja7Jq9TsMwEMcxrZD4WpBYeKUCe+kTMCACHZh4BFfHO/AAIHZGFhYkBBsSEqxsLCAgXKhbXYOTxh9pfJVP+qutnZ5s/5Lz2Y5I03QhWji2GIcgAokWgfCxNvcOCCGKqiSqhUp0laHOne05vdEyGMfkdxJDVjgwDlEQgYQBgx+ULJaWSXXS6r/ER5FBVR8VfGftTKcITNs+a1XpcFoExREIDF14AVIFxgQUS+h520cdud6wNkC0UBw6BCO/HoCYwBhD8QCkQ/x1mwDyD4plh4D6DDV0TAGyo4HcawLIBBSLDkHeH0Mg2yVP3l4TQMZQDDsEOl/MgHQqhMNuE0D+oBh0CIr8MAKyazBH9WyBuKxDWgbXfjNf32TZ1KWm/Ap1oSk/R53UtQ5xTh3LUlMmT8gt6g51Q9p+SobxgJQ/qmsfZhWywGFSl0yBjCLJCMgXail3b7+rumdVJ2YRss4cN+r6qAHDkPWjPjdJCF4n9RmAD/V9A/Wp4NQassDjwlB6XBiCxcJQWmZZb8THFilfy/lfrTvLghq2TqTHrRMTKNJ0sIhdo15RT+RpyWwFdY96UZ/LdQKBGjcXpcc1AlSFEfLmouD+1knuxbduvrvobmooc/rEcN7OQxKVeJTCiAdUzUJhA2Oez9QTkp72OTVcxDcXY8iKNkxGAJXmJCOQwOa6dhyXsOa6XwEGAKdeb5ET3rQdAAAAAElFTkSuQmCC);
+}
+.xdsoft_datetimepicker .xdsoft_label i {
+  opacity: 0.5;
+  background-position: -92px -19px;
+  display: inline-block;
+  width: 9px;
+  height: 20px;
+  vertical-align: middle;
+}
+.xdsoft_datetimepicker .xdsoft_prev {
+  float: left;
+  background-position: -20px 0;
+}
+.xdsoft_datetimepicker .xdsoft_today_button {
+  float: left;
+  background-position: -70px 0;
+  margin-left: 5px;
+}
+.xdsoft_datetimepicker .xdsoft_next {
+  float: right;
+  background-position: 0 0;
+}
+.xdsoft_datetimepicker .xdsoft_next,
+.xdsoft_datetimepicker .xdsoft_prev,
+.xdsoft_datetimepicker .xdsoft_today_button {
+  background-color: transparent;
+  background-repeat: no-repeat;
+  border: 0 none;
+  cursor: pointer;
+  display: block;
+  height: 30px;
+  opacity: 0.5;
+  -ms-filter: "alpha(opacity=50)";
+  outline: medium none;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  text-indent: 100%;
+  white-space: nowrap;
+  width: 20px;
+  min-width: 0;
+}
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_prev,
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_next {
+  float: none;
+  background-position: -40px -15px;
+  height: 15px;
+  width: 30px;
+  display: block;
+  margin-left: 14px;
+  margin-top: 7px;
+}
+.xdsoft_datetimepicker.xdsoft_rtl .xdsoft_timepicker .xdsoft_prev,
+.xdsoft_datetimepicker.xdsoft_rtl .xdsoft_timepicker .xdsoft_next {
+  float: none;
+  margin-left: 0;
+  margin-right: 14px;
+}
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_prev {
+  background-position: -40px 0;
+  margin-bottom: 7px;
+  margin-top: 0;
+}
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box {
+  height: 151px;
+  overflow: hidden;
+  border-bottom: 1px solid #ddd;
+}
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box > div > div {
+  background: #f5f5f5;
+  border-top: 1px solid #ddd;
+  color: #666;
+  font-size: 12px;
+  text-align: center;
+  border-collapse: collapse;
+  cursor: pointer;
+  border-bottom-width: 0;
+  height: 25px;
+  line-height: 25px;
+}
+.xdsoft_datetimepicker
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div:first-child {
+  border-top-width: 0;
+}
+.xdsoft_datetimepicker .xdsoft_today_button:hover,
+.xdsoft_datetimepicker .xdsoft_next:hover,
+.xdsoft_datetimepicker .xdsoft_prev:hover {
+  opacity: 1;
+  -ms-filter: "alpha(opacity=100)";
+}
+.xdsoft_datetimepicker .xdsoft_label {
+  display: inline;
+  position: relative;
+  z-index: 9999;
+  margin: 0;
+  padding: 5px 3px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: bold;
+  background-color: #fff;
+  float: left;
+  width: 182px;
+  text-align: center;
+  cursor: pointer;
+}
+.xdsoft_datetimepicker .xdsoft_label:hover > span {
+  text-decoration: underline;
+}
+.xdsoft_datetimepicker .xdsoft_label:hover i {
+  opacity: 1;
+}
+.xdsoft_datetimepicker .xdsoft_label > .xdsoft_select {
+  border: 1px solid #ccc;
+  position: absolute;
+  right: 0;
+  top: 30px;
+  z-index: 101;
+  display: none;
+  background: #fff;
+  max-height: 160px;
+  overflow-y: hidden;
+}
+.xdsoft_datetimepicker .xdsoft_label > .xdsoft_select.xdsoft_monthselect {
+  right: -7px;
+}
+.xdsoft_datetimepicker .xdsoft_label > .xdsoft_select.xdsoft_yearselect {
+  right: 2px;
+}
+.xdsoft_datetimepicker
+  .xdsoft_label
+  > .xdsoft_select
+  > div
+  > .xdsoft_option:hover {
+  color: #fff;
+  background: #ff8000;
+}
+.xdsoft_datetimepicker .xdsoft_label > .xdsoft_select > div > .xdsoft_option {
+  padding: 2px 10px 2px 5px;
+  text-decoration: none !important;
+}
+.xdsoft_datetimepicker
+  .xdsoft_label
+  > .xdsoft_select
+  > div
+  > .xdsoft_option.xdsoft_current {
+  background: #3af;
+  box-shadow: #178fe5 0 1px 3px 0 inset;
+  color: #fff;
+  font-weight: 700;
+}
+.xdsoft_datetimepicker .xdsoft_month {
+  width: 100px;
+  text-align: right;
+}
+.xdsoft_datetimepicker .xdsoft_calendar {
+  clear: both;
+}
+.xdsoft_datetimepicker .xdsoft_year {
+  width: 48px;
+  margin-left: 5px;
+}
+.xdsoft_datetimepicker .xdsoft_calendar table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td > div {
+  padding-right: 5px;
+}
+.xdsoft_datetimepicker .xdsoft_calendar th {
+  height: 25px;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td,
+.xdsoft_datetimepicker .xdsoft_calendar th {
+  width: 14.2857142%;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  color: #666;
+  font-size: 12px;
+  text-align: right;
+  vertical-align: middle;
+  padding: 0;
+  border-collapse: collapse;
+  cursor: pointer;
+  height: 25px;
+}
+.xdsoft_datetimepicker.xdsoft_showweeks .xdsoft_calendar td,
+.xdsoft_datetimepicker.xdsoft_showweeks .xdsoft_calendar th {
+  width: 12.5%;
+}
+.xdsoft_datetimepicker .xdsoft_calendar th {
+  background: #f1f1f1;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_today {
+  color: #3af;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_highlighted_default {
+  background: #ffe9d2;
+  box-shadow: #ffb871 0 1px 4px 0 inset;
+  color: #000;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_highlighted_mint {
+  background: #c1ffc9;
+  box-shadow: #00dd1c 0 1px 4px 0 inset;
+  color: #000;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_default,
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_current,
+.xdsoft_datetimepicker
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div.xdsoft_current {
+  background: #3af;
+  box-shadow: #178fe5 0 1px 3px 0 inset;
+  color: #fff;
+  font-weight: 700;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_other_month,
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_disabled,
+.xdsoft_datetimepicker .xdsoft_time_box > div > div.xdsoft_disabled {
+  opacity: 0.5;
+  -ms-filter: "alpha(opacity=50)";
+  cursor: default;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_other_month.xdsoft_disabled {
+  opacity: 0.2;
+  -ms-filter: "alpha(opacity=20)";
+}
+.xdsoft_datetimepicker .xdsoft_calendar td:hover,
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box > div > div:hover {
+  color: #fff !important;
+  background: #ff8000 !important;
+  box-shadow: none !important;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_current.xdsoft_disabled:hover,
+.xdsoft_datetimepicker
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div.xdsoft_current.xdsoft_disabled:hover {
+  background: #3af !important;
+  box-shadow: #178fe5 0 1px 3px 0 inset !important;
+  color: #fff !important;
+}
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_disabled:hover,
+.xdsoft_datetimepicker
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div.xdsoft_disabled:hover {
+  color: inherit !important;
+  background: inherit !important;
+  box-shadow: inherit !important;
+}
+.xdsoft_datetimepicker .xdsoft_calendar th {
+  font-weight: 700;
+  text-align: center;
+  color: #999;
+  cursor: default;
+}
+.xdsoft_datetimepicker .xdsoft_copyright {
+  color: #ccc !important;
+  font-size: 10px;
+  clear: both;
+  float: none;
+  margin-left: 8px;
+}
+.xdsoft_datetimepicker .xdsoft_copyright a {
+  color: #eee !important;
+}
+.xdsoft_datetimepicker .xdsoft_copyright a:hover {
+  color: #aaa !important;
+}
+.xdsoft_time_box {
+  position: relative;
+  border: 1px solid #ccc;
+}
+.xdsoft_scrollbar > .xdsoft_scroller {
+  background: #ccc !important;
+  height: 20px;
+  border-radius: 3px;
+}
+.xdsoft_scrollbar {
+  position: absolute;
+  width: 7px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  cursor: pointer;
+}
+.xdsoft_datetimepicker.xdsoft_rtl .xdsoft_scrollbar {
+  left: 0;
+  right: auto;
+}
+.xdsoft_scroller_box {
+  position: relative;
+}
+.xdsoft_datetimepicker.xdsoft_dark {
+  box-shadow: 0 5px 15px -5px rgba(255, 255, 255, 0.506);
+  background: #000;
+  border-bottom: 1px solid #444;
+  border-left: 1px solid #333;
+  border-right: 1px solid #333;
+  border-top: 1px solid #333;
+  color: #ccc;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_timepicker .xdsoft_time_box {
+  border-bottom: 1px solid #222;
+}
+.xdsoft_datetimepicker.xdsoft_dark
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div {
+  background: #0a0a0a;
+  border-top: 1px solid #222;
+  color: #999;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_label {
+  background-color: #000;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_label > .xdsoft_select {
+  border: 1px solid #333;
+  background: #000;
+}
+.xdsoft_datetimepicker.xdsoft_dark
+  .xdsoft_label
+  > .xdsoft_select
+  > div
+  > .xdsoft_option:hover {
+  color: #000;
+  background: #007fff;
+}
+.xdsoft_datetimepicker.xdsoft_dark
+  .xdsoft_label
+  > .xdsoft_select
+  > div
+  > .xdsoft_option.xdsoft_current {
+  background: #c50;
+  box-shadow: #b03e00 0 1px 3px 0 inset;
+  color: #000;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_label i,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_prev,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_next,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_today_button {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAeCAYAAADaW7vzAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUExQUUzOTA0M0UyMTFFNDlBM0FFQTJENTExRDVBODYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUExQUUzOTE0M0UyMTFFNDlBM0FFQTJENTExRDVBODYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBQTFBRTM4RTQzRTIxMUU0OUEzQUVBMkQ1MTFENUE4NiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBQTFBRTM4RjQzRTIxMUU0OUEzQUVBMkQ1MTFENUE4NiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pp0VxGEAAAIASURBVHja7JrNSgMxEMebtgh+3mslr1t1xn2choskb08+QmR8Bx9A8e7RixdB9CKCoNdexIugxFlJa7rNZneTbLIpM/CnNLsdMvNjM8l0mRCiQ9Ye61IKCAgZAUnH+mU3MMZaHYChBnJUDzWOFZdVfc5+ZFLbrWDeXPwbxIqrLLfaeS0hEBVGIRQCEiZoHQwtlGSByCCdYBl8g8egTTAWoKQMRBRBcZxYlhzhKegqMOageErsCHVkk3hXIFooDgHB1KkHIHVgzKB4ADJQ/A1jAFmAYhkQqA5TOBtocrKrgXwQA8gcFIuAIO8sQSA7hidvPwaQGZSaAYHOUWJABhWWw2EMIH9QagQERU4SArJXo0ZZL18uvaxejXt/Em8xjVBXmvFr1KVm/AJ10tRe2XnraNqaJvKE3KHuUbfK1E+VHB0q40/y3sdQSxY4FHWeKJCunP8UyDdqJZenT3ntVV5jIYCAh20vT7ioP8tpf6E2lfEMwERe+whV1MHjwZB7PBiCxcGQWwKZKD62lfGNnP/1poFAA60T7rF1UgcKd2id3KDeUS+oLWV8DfWAepOfq00CgQabi9zjcgJVYVD7PVzQUAUGAQkbNJTBICDhgwYTjDYD6XeW08ZKh+A4pYkzenOxXUbvZcWz7E8ykRMnIHGX1XPl+1m2vpypl+2qdb8cdaarlkfez/ZVkAAAAABJRU5ErkJggg==);
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar th {
+  background: #0a0a0a;
+  border: 1px solid #222;
+  color: #999;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar th {
+  background: #0e0e0e;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_today {
+  color: #c50;
+}
+.xdsoft_datetimepicker.xdsoft_dark
+  .xdsoft_calendar
+  td.xdsoft_highlighted_default {
+  background: #ffe9d2;
+  box-shadow: #ffb871 0 1px 4px 0 inset;
+  color: #000;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_highlighted_mint {
+  background: #c1ffc9;
+  box-shadow: #00dd1c 0 1px 4px 0 inset;
+  color: #000;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_default,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_current,
+.xdsoft_datetimepicker.xdsoft_dark
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div.xdsoft_current {
+  background: #c50;
+  box-shadow: #b03e00 0 1px 3px 0 inset;
+  color: #000;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td:hover,
+.xdsoft_datetimepicker.xdsoft_dark
+  .xdsoft_timepicker
+  .xdsoft_time_box
+  > div
+  > div:hover {
+  color: #000 !important;
+  background: #007fff !important;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar th {
+  color: #666;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_copyright {
+  color: #333 !important;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_copyright a {
+  color: #111 !important;
+}
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_copyright a:hover {
+  color: #555 !important;
+}
+.xdsoft_dark .xdsoft_time_box {
+  border: 1px solid #333;
+}
+.xdsoft_dark .xdsoft_scrollbar > .xdsoft_scroller {
+  background: #333 !important;
+}
+.xdsoft_datetimepicker .xdsoft_save_selected {
+  display: block;
+  border: 1px solid #ddd !important;
+  margin-top: 5px;
+  width: 100%;
+  color: #454551;
+  font-size: 13px;
+}
+.xdsoft_datetimepicker .blue-gradient-button {
+  font-family: "museo-sans", "Book Antiqua", sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #82878c;
+  height: 28px;
+  position: relative;
+  padding: 4px 17px 4px 33px;
+  border: 1px solid #d7d8da;
+  background: -moz-linear-gradient(top, #fff 0, #f4f8fa 73%);
+  background: -webkit-gradient(
+    linear,
+    left top,
+    left bottom,
+    color-stop(0, #fff),
+    color-stop(73%, #f4f8fa)
+  );
+  background: -webkit-linear-gradient(top, #fff 0, #f4f8fa 73%);
+  background: -o-linear-gradient(top, #fff 0, #f4f8fa 73%);
+  background: -ms-linear-gradient(top, #fff 0, #f4f8fa 73%);
+  background: linear-gradient(to bottom, #fff 0, #f4f8fa 73%);
+  filter: progid:DXImageTransform.Microsoft.gradient(
+      startColorstr="#fff",
+      endColorstr="#f4f8fa",
+      GradientType=0
+    );
+}
+.xdsoft_datetimepicker .blue-gradient-button:hover,
+.xdsoft_datetimepicker .blue-gradient-button:focus,
+.xdsoft_datetimepicker .blue-gradient-button:hover span,
+.xdsoft_datetimepicker .blue-gradient-button:focus span {
+  color: #454551;
+  background: -moz-linear-gradient(top, #f4f8fa 0, #fff 73%);
+  background: -webkit-gradient(
+    linear,
+    left top,
+    left bottom,
+    color-stop(0, #f4f8fa),
+    color-stop(73%, #fff)
+  );
+  background: -webkit-linear-gradient(top, #f4f8fa 0, #fff 73%);
+  background: -o-linear-gradient(top, #f4f8fa 0, #fff 73%);
+  background: -ms-linear-gradient(top, #f4f8fa 0, #fff 73%);
+  background: linear-gradient(to bottom, #f4f8fa 0, #fff 73%);
+  filter: progid:DXImageTransform.Microsoft.gradient(
+      startColorstr="#f4f8fa",
+      endColorstr="#FFF",
+      GradientType=0
+    );
+}
 </style>
