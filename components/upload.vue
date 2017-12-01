@@ -1,7 +1,7 @@
 <template>
   <div class="full">
-    <div id="popup" v-bind:class="{invisiblePopup: (editableVideoIndex < 0)}">
-      <div @click="editableVideoIndex = -1" class="exit"></div>
+    <div id="popup" v-bind:class="{invisiblePopup: (editableVideoHash === null)}">
+      <div @click="editableVideoHash = null" class="exit"></div>
       <div class="popup">
         <div class="pop_title"><span>Video의 메타데이터 수정</span></div>
           <div class="datepick">
@@ -10,48 +10,65 @@
           </div>
           <div class="datepick">
             <div>위치</div>
-            <input type="list" id="autocomplete" placeholder="위치를 검색하세요">
+            <input v-model="editableLocation" type="list" id="autocomplete" placeholder="위치를 검색하세요">
+            <div class="ul-fit">
+              <ul class="popup">
+                <li
+                  v-for="(loc, index) in candidateLocations"
+                  :key="loc.address"
+                  @click="chosenLocation = candidateLocations[index]"
+                >
+                  {{loc.address}}
+                </li>
+              </ul>
+            </div>
           </div>
           <div id="navermap" class="map" v-pre></div>
       </div>
       <div class="button">
-        <div @click="editableVideoIndex = -1">취소</div>
-        <div @click="editVideo()">적용</div>
+        <div @click="editableVideoHash = null">취소</div>
+        <div @click="saveVideoMetadata()">적용</div>
       </div>
     </div>
     <div id="name">{{caseTitle}} {{caseDateTime}} ({{caseMemo}})</div>
     <div id="upload">
-      <button class="left_button"></button>
+      <button @click="newVideos()" class="left_button"></button>
       <button class="right_button">분석 중 ( 10 / 30 )</button>
+      <div class="title_selected">Video List</div>
       <div class="do">
-        <div class="select">
-          <div class="file_meta">
-            <span>video video</span>
-            <span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span>
+        <div
+          v-for="v in videos"
+          :key="v.hash"
+          v-bind:class="{ select: (chosenVideo !== null && v.video_hash === chosenVideo.video_hash) }"
+        >
+          <div @click="chooseVideo(v)" class="file_meta">
+            <span>{{v.path}}</span>
+            <span v-if="v.datetime === '0001-01-01 00:00:00' || (v.lat === 0.0 && v.lng === 0.0)">지도 및 시간 정보 입력을 위해 연필 모양을 클릭해주세요.</span>
+            <span v-else>Time: {{v.datetime}}, Latitude: {{v.lat}}, Longitude: {{v.lng}}</span>
           </div>
-          <div @click="editableVideoIndex = 0" class="file_edit"></div>
+          <div @click="editableVideoHash = v.hash" class="file_edit"></div>
         </div>
-        <div class="have-select"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class=""><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class=""><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class=""><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
-        <div class="deact"><div class="file_meta"><span>video video</span><span>지도 및 시간 정보 입력을 위해 더블클릭해주세요</span></div><div class="file_edit"></div></div>
       </div>
+      <div class="alter-shadow"></div>
     </div>
     <div id="list">
-      <div class="title2">시간 설정 그래프</div>
-      <ul>
+      <div class="title_selected2">Analyzed Object</div>
+      <div class="title2" style="border:10px">
+        <input id="slider" type="range"></input>
+      </div>
+      <ul v-if="chosenVideo !== null">
+        <li
+          v-for="p in chosenPeople"
+          :key="p.hash"
+          v-if="p.moment.isSameOrAfter(startTime) && p.moment.isSameOrBefore(endTime)"
+          v-bind:style="{background: 'url(' + p.bbox_path + ') no-repeat center #646464'}"
+          @click="toggleProbe(chosenVideo, p)"
+        >
+          <div v-bind:class="{ select: ((chosenVideo.video_hash in chosenProbe) && (chosenProbe[chosenVideo.video_hash].includes(p.hash))) }">
+            <span>{{p.timedelta}}</span>
+          </div>
+        </li>
         <li><div class="select"><span>출현 시간</span></div></li>
-        <li><div><span>출현 시간</span></div></li>
-        <li><div><span>출현 시간</span></div></li>
       </ul>
     </div>
   </div>
@@ -61,23 +78,36 @@
 import axios from "axios";
 import $ from "jquery";
 import "jquery-datetimepicker";
+import ionRangeSlider from 'ion-rangeslider';
+import moment from 'moment';
+import Vue from 'vue';
+
+import Location from "./location.js";
 
 export default {
-	data: function() {
-		return {
-			caseTitle: '',
-			caseDateTime: '',
-			caseMemo: '',
+  data: function() {
+    return {
+      caseTitle: '',
+      caseDateTime: '',
+      caseMemo: '',
 
       videos: [],
+      chosenVideo: null,
+      chosenPeople: [],
+      chosenProbe: {},
+      startTime: null,
+      endTime: null,
 
-      datetimeInput: '',
+      editableLocation: '',
+      chosenLocation: null,
+      chosenMarker: null,
+      candidateLocations: [],
       navermap: null,
-      
-      editableVideoIndex: -1
-		};
-	},
-	methods: {
+
+      editableVideoHash: null
+    };
+  },
+  methods: {
     newVideos() {
       require("electron").remote.dialog.showOpenDialog(
         {
@@ -85,194 +115,137 @@ export default {
           properties: ["openFile", "multiSelections"]
         },
         files => {
-          /*
-          let currentFiles = [];
-          for (let i = 0; i < this.videos.length; i++) {
-            currentFiles.push(this.videos[i].file);
-          }
+          let uploadFiles = [];
           for (let file of files) {
-            if (currentFiles.includes(file) === false) {
-              currentFiles.push(file);
-              this.videos.push(
-                new Video(file, null, new Location("", null, null), "")
-              );
-              this.markers.push(null);
+            uploadFiles.push({
+              path: file,
+              memo: ''
+            });
+          }
+          axios
+            .post(
+              __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos']),
+              {
+                videos: uploadFiles
+              }
+            )
+            .then(this.__callback_upload_videos);
+          }
+      );
+    },
+    chooseVideo(video) {
+      if (video.is_detection_done === false) {
+        alert('분석이 완료되지 않았습니다.');
+        return;
+      }
+      this.chosenVideo = video;
+      this.chosenPeople = [];
+      let imgList = this.chosenVideo.imgs;
+      if(imgList.length < 1) return;
+
+      for(let i=0; i<imgList.length; i++) {
+        let imgPersons = imgList[i].persons;
+        for(let j=0; j<imgPersons.length; j++) {
+          this.chosenPeople.push(
+            {
+              'timedelta': imgList[i].timedelta,
+              'moment': moment(imgList[i].timedelta, 'HH:mm:ss'),
+              'hash': imgPersons[j].hash,
+              'bbox_path': imgPersons[j].bbox_path,
+              'orig_path': imgPersons[j].orig_path
             }
-          }
-          */
-          console.log(files);
+          );
         }
-      );
-    },
-    editVideo() {
-      this.editableVideoIndex = -1;
-    },
-		__callback_set_videos: function(response) {
-			this.videos = response.data.videos;
-		}
-  },
-  watch: {
-    editableVideoIndex: function(now, pre) {
-      if (now == -1 && pre > -1) {
-        console.log(this.datetimeInput);
       }
-    }
-  },
-	mounted: function() {
-		this.caseTitle = __global__.data.case.title;
-		this.caseDateTime = __global__.data.case.datetime;
-    this.caseMemo = __global__.data.case.memo;
-    
-    $("#datetimepicker").datetimepicker({
-      step: 1,
-      format: "Y-m-d H:i"
-    });
-    this.navermap = new naver.maps.Map("navermap", {
-      center: new naver.maps.LatLng(37.3595704, 127.105399),
-      zoom: 10
-    });
+      this.startTime = moment(imgList[0].timedelta, 'HH:mm:ss');
+      this.endTime = moment(imgList[0].timedelta, 'HH:mm:ss');
 
-    axios
-		  .get(__global__.method.getUrl(["cases", __global__.data.case.hash, "videos"]))
-      .then(this.__callback_set_videos);
-	}
-}
-/*
-import videoitem from "./videoitem.vue";
-import Video from "./video.js";
-import Location from "./location.js";
-
-export default {
-  data: function() {
-    return {
-      videos: [],
-      selectedVideoIndex: null,
-      selectedVideo: null,
-
-      markers: [],
-      selectedMarker: null,
-
-      locations: [],
-      navermap: null
-    };
-  },
-  components: {
-    videoitem: videoitem
-  },
-  methods: {
-    fileDialog: function() {
-      require("electron").remote.dialog.showOpenDialog(
-        {
-          title: "Choose Video",
-          properties: ["openFile", "multiSelections"]
-        },
-        files => {
-          let currentFiles = [];
-          for (let i = 0; i < this.videos.length; i++) {
-            currentFiles.push(this.videos[i].file);
-          }
-          for (let file of files) {
-            if (currentFiles.includes(file) === false) {
-              currentFiles.push(file);
-              this.videos.push(
-                new Video(file, null, new Location("", null, null), "")
-              );
-              this.markers.push(null);
-            }
-          }
-        }
-      );
-    },
-    fileOpen: function(index) {
-      this.selectedVideoIndex = index;
-      this.selectedVideo = new Video(
-        this.videos[index].file,
-        this.videos[index].datetime,
-        this.videos[index].location,
-        this.videos[index].memo
-      ); // Deep copy
-      this.selectedMarker = this.markers[index];
-      this.locations = [];
-    },
-    saveSelectedVideo: function() {
-      if (this.selectedVideo !== null) {
-        let errors = this.selectedVideo.check();
-        if (errors.length > 0) {
-          alert("Cannot save video metadata.\n" + errors.join("\n"));
-          return;
-        }
-        this.videos.splice(this.selectedVideoIndex, 1, this.selectedVideo);
-        this.markers[this.selectedVideoIndex] = this.selectedMarker;
-        this.selectedVideoIndex = null;
-        this.selectedVideo = null;
-        this.selectedMarker = null;
-        this.locatons = [];
-      }
-    },
-    deleteSelectedVideo: function() {
-      if (this.selectedVideoIndex !== null) {
-        this.videos.splice(this.selectedVideoIndex, 1);
-        this.markers.splice(this.selectedVideoIndex, 1);
-        this.selectedVideoIndex = null;
-        this.selectedVideo = null;
-        this.locations = [];
-        if (this.selectedMarker !== null) {
-          this.selectedMarker.setMap(null);
-          this.selectedMarker = null;
-        }
-      }
-    },
-    sendVideos: function() {
-      let errors = [];
-      for (let i = 0; i < this.videos.length; i++) {
-        let video = this.videos[i];
-        let videoErrors = video.check();
-        if (videoErrors.length > 0) {
-          errors = errors.concat([video.file], videoErrors, [""]);
-        }
-      }
-      if (errors.length > 0) {
-        alert("Cannot analyze video.\n" + errors.join("\n"));
-      } else {
-        if (confirm("Are you sure you want to stop adding videos?")) {
-          let reqVideos = [];
-          for (let i = 0; i < this.videos.length; i++) {
-            reqVideos.push(this.videos[i].json());
-          }
-          let reqData = JSON.stringify({
-            videos: reqVideos,
-            code: "detect_request"
-          });
-          // TODO: SEND reqData
-          console.log(reqData);
-          this.$router.push({
-            path: "loading",
-            query: { nextRoute: "probe" }
-          });
-        }
-      }
-    },
-    locationSet: function(location) {
-      this.selectedVideo.location = new Location(
-        location.address,
-        location.lat,
-        location.lng
-      );
-      if (this.selectedMarker !== null) this.selectedMarker.setMap(null);
-      let position = new naver.maps.LatLng(location.lat, location.lng);
-      this.selectedMarker = new naver.maps.Marker({
-        position: position,
-        map: this.navermap
+      $('#slider').data('ionRangeSlider').destroy();
+      $('#slider').ionRangeSlider({
+          type: "double",
+          grid: true,
+          grid_snap: true,
+          step: 1,
+          min: +moment(imgList[0].timedelta, 'HH:mm:ss'),
+          max: +moment(imgList[imgList.length-1].timedelta, 'HH:mm:ss'),
+          from: +this.startTime,
+          to: +this.endTime,
+          prettify: (num) => {
+              return moment(num).format('HH:mm:ss');
+          },
+          onFinish: this.__slider__callback
       });
-      this.navermap.panTo(position);
     },
-    __navermap__callback(status, response) {
-      this.locations = [];
+    toggleProbe(video, person) {
+      let vh = video.video_hash;
+      let ph = person.hash;
+      if(!(vh in this.chosenProbe)) Vue.set(this.chosenProbe, vh, []);
+      if(this.chosenProbe[vh].includes(ph)) {
+        this.chosenProbe[vh].splice(this.chosenProbe[vh].indexOf(ph), 1);
+      }
+      else {
+        this.chosenProbe[vh].push(ph);
+      }
+    },
+    __slider__callback(data) {
+      console.log(data['from']);
+      console.log(data['to']);
+      this.startTime = data['from'];
+      this.endTime = data['to'];
+      console.log(this.startTime);
+      console.log(this.endTime);
+      /*
+      this.chosenPeople = [];
+      let imgList = this.videos[this.selectedVideoIndex].img;
+      for(let i=0; i<imgList.length; i++) {
+        let imgTime = moment(imgList[i].time);
+        if(imgTime.isSameOrAfter(data['from']) && imgTime.isSameOrBefore(data['to'])) {
+          for(let j=0; j<imgList[i].persons.length; j++) {
+            this.chosenPeople.push(imgList[i].persons[j]);
+          }
+        }
+      }
+      */
+    },
+    saveVideoMetadata() {
+      let metadata = {
+        memo: '',
+        lat: this.chosenMarker === null ? 0.0 : this.chosenMarker.getPosition().y,
+        lng: this.chosenMarker === null ? 0.0 : this.chosenMarker.getPosition().x,
+        datetime: $("#datetimepicker")[0].value === '' ? '0001-01-01 00:00:00' : ($("#datetimepicker")[0].value + ':00')
+      };
+      var editableVideoIndex = -1;
+
+      axios
+        .put(
+          __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos', this.hashes[this.editableVideoHash]]),
+          metadata
+        );
+      this.editableVideoHash = null;
+      this.chosenLocation = null;
+      this.refreshVideoList();
+    },
+    refreshVideoList() {
+      this.videos = [];
+      axios
+        .get(
+          __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos'])
+        )
+        .then(this.__callback_set_videos);
+    },
+    __callback_upload_videos(response) {
+      this.refreshVideoList();
+    },
+    __callback_set_videos(response) {
+      this.videos = response.data.videos;
+    },
+    __callback__navermap_search(status, response) {
+      this.candidateLocations = [];
       if (status === naver.maps.Service.Status.ERROR) {
         return;
       }
       for (let i = 0; i < response.result.total; i++) {
-        this.locations.push(
+        this.candidateLocations.push(
           new Location(
             response.result.items[i].address,
             response.result.items[i].point.y,
@@ -282,36 +255,73 @@ export default {
       }
     }
   },
-  computed: {
-    selectedVideoFile: function() {
-      return this.selectedVideo.file.split("/").slice(-1)[0];
-    },
-    selectedAddress: function() {
-      if (this.selectedVideo === null) return "";
-      return this.selectedVideo.location.address;
-    }
-  },
   watch: {
-    selectedAddress: function(newVal, oldVal) {
-      if (newVal === "") return;
+    editableVideoHash: function(now, pre) {
+      console.log(pre);
+      console.log('-->');
+      console.log(now);
+      if (now == -1 && pre > -1) {
+        console.log(this.datetimeInput);
+        return;
+      }
+    },
+    editableLocation: function(now, pre) {
+      if (now === "") return;
       naver.maps.Service.geocode(
-        { address: newVal },
-        this.__navermap__callback
+        { address: now },
+        this.__callback__navermap_search
       );
     },
-    selectedMarker: function(newVal, oldVal) {
-      if (oldVal !== null) oldVal.setAnimation(null);
-      if (newVal !== null) newVal.setAnimation(naver.maps.Animation.BOUNCE);
+    chosenLocation: function(now, pre) {
+      if (this.chosenMarker !== null) {
+        this.chosenMarker.setMap(null);
+        this.chosenMarker = null;
+      }
+      if (now !== null) {
+        let position = new naver.maps.LatLng(now.lat, now.lng);
+        this.chosenMarker = new naver.maps.Marker({
+          position: position,
+          map: this.navermap
+        });
+        this.chosenMarker.setDraggable(true);
+        __global__.data.chosenMarker = this.chosenMarker;
+        this.navermap.panTo(position);
+        this.editableLocation = now.address;
+      }
     }
   },
   mounted: function() {
+    this.caseTitle = __global__.data.case.title;
+    this.caseDateTime = __global__.data.case.datetime;
+    this.caseMemo = __global__.data.case.memo;
+
+    $("#datetimepicker").datetimepicker({
+      step: 1,
+      format: "Y-m-d H:i"
+    });
     this.navermap = new naver.maps.Map("navermap", {
       center: new naver.maps.LatLng(37.3595704, 127.105399),
       zoom: 10
     });
+
+    $('#slider').ionRangeSlider({
+      type: "double",
+      grid: true,
+      disable: true,
+      min: +moment(),
+      max: +moment(),
+      prettify: (num) => {
+        return moment(num).format().slice(0, -6);
+      },
+    });
+
+    axios
+      .get(
+        __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos'])
+      )
+      .then(this.__callback_set_videos);
   }
 };
-*/
 </script>
 
 <style scoped>
@@ -407,6 +417,9 @@ video {
 * {
   position: relative;
 }
+.invisiblePopup {
+  visibility: hidden;
+}
 #new {
   top: 0;
   margin: 0;
@@ -448,8 +461,8 @@ video {
   height: 100%;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.5);
-  display: block;
   text-align: center;
+  vertical-align: middle;
 }
 .left_button {
   border: none;
@@ -464,7 +477,7 @@ video {
   font-weight: bold;
   font-size: 1.5em;
   line-height: 6vh;
-  box-shadow: 0px 4px 3px #888888;
+  box-shadow: 0px 2px 2px #888888;
   border: 0.2px solid #127597;
   background: url(../images/upload_c.png) no-repeat white;
   background-size: 6.4vh 4vh;
@@ -489,15 +502,11 @@ video {
   font-weight: bold;
   font-size: 1em;
   line-height: 6vh;
-  box-shadow: 0px 4px 3px #888888;
+  box-shadow: 0px 2px 2px #888888;
   background: #253746;
 }
 .right_button:hover {
   background: #218db7;
-}
-
-.invisiblePopup {
-  visibility: hidden;
 }
 
 .header div {
@@ -539,7 +548,7 @@ input {
   margin: 0 5% 0 5%;
   width: 75%;
   border: 0;
-  padding: 10;
+  padding: 0px;
   height: 80px;
   color: #4a4a4a;
   font-size: 0.875em;
@@ -575,16 +584,17 @@ li {
 }
 ul {
   width: 100%;
-  height: 88vh;
+  height: 82.5vh;
   float: left;
   position: relative;
+  padding-right: 17px;
 }
 .list {
   width: 100%;
 }
 .do div span {
   margin: 0 1vw;
-  line-height: 4.4vh;
+  line-height: 2.2vh;
 }
 .do div.file_meta:hover {
   filter: brightness(50%);
@@ -608,7 +618,7 @@ li {
   line-height: 20vh;
   text-align: center;
   width: calc(41vw/6);
-  height: 15vh;
+  height: 25vh;
   color: white;
   background: #5b5b5b;
   border-right: 0.1vw #eee;
@@ -640,27 +650,28 @@ ul li {
   position: relative;
   float: left;
   margin-top: 1vh;
+  margin-bottom: 1vh;
   box-shadow: 1px 1px 3px #888888;
 }
 .sec {
   left: calc(100%/3);
 }
 .do {
+  z-index: 2;
   width: calc(100vw/3);
-  height: calc(100% - 6.5vh);
-  top: vh;
+  height: calc(100% - 9vh);
   background: #ddd;
   overflow-y: auto;
+  padding-right: 17px;
 }
 #upload {
   position: relative;
   float: left;
   width: calc(100vw/3);
   height: 95vh;
-  overflow-y: auto;
+  overflow-y: hidden;
   box-sizing: border-box;
   margin: 0.5vh 0.5vw;
-  box-shadow: 0px 0px 10px #999;
 }
 #upload div div {
   left: 0;
@@ -694,7 +705,8 @@ ul li {
   background: #ddd;
   left: calc(25vw + 100vw/3);
 }
-
+#upload .do div:first-child {
+}
 #upload .do div.select div.file_meta {
   background: #2698bf;
   color: white;
@@ -770,7 +782,7 @@ ul li div span {
   background: white;
   top: 14%;
   width: 30%;
-  height: 5%;
+  height: 5vh;
   margin: auto;
   padding-bottom: 10px;
 }
@@ -785,12 +797,12 @@ ul li div span {
 }
 div.title2 {
   position: relative;
-  z-index: 0;
-  width: calc(73.5vw - 4px);
+  z-index: 5;
   height: calc(10vh);
   background: white;
   color: white;
   box-shadow: 0px 2px 5px #888888;
+  padding: 5px 20px 0px 20px;
 }
 
 .title span {
@@ -848,6 +860,7 @@ div.datepick input {
   float: left;
   height: 40px;
 }
+
 .popup {
   display: inline-block;
   width: 30%;
@@ -900,7 +913,7 @@ div.button div {
   float: left;
   width: calc(45% - 4px);
   height: calc(100% - 4px);
-  line-height: 50px;
+  line-height: 5vh;
   font-size: 150%;
   font-weight: bold;
   color: #2698bf;
@@ -939,7 +952,6 @@ div#name {
 
 #upload .do div div.file_edit {
   position: relative;
-  /* border-left: 0.5px solid #ddd; */
   width: calc(4.4vh - 0.5px);
   height: 4.4vh;
   background: url(../images/edit.png) no-repeat white center;
@@ -974,6 +986,77 @@ div.file_meta {
 }
 #list ul li:hover div span {
   color: white;
+}
+
+div.title_selected2 {
+  width: 100%;
+  height: 2.5vh;
+  text-align: center;
+  font-size: 0.8em;
+  color: white;
+  background: #2698bf;
+  line-height: 2.5vh;
+}
+
+div.title_selected {
+  z-index: 3;
+  width: 100%;
+  height: 2.5vh;
+  text-align: center;
+  font-size: 0.8em;
+  color: white;
+  background: #147394;
+  line-height: 2.5vh;
+}
+
+div.alter-shadow {
+  z-index: 1;
+  position: fixed;
+  bottom: 1vh;
+  width: calc(100vw/3);
+  height: calc(86vh);
+  box-shadow: 0px 0px 10px #999;
+  background: rgba(0, 0, 0, 0);
+}
+
+ul.popup {
+  z-index: 1001;
+  top: 0;
+  padding-right: 17px !important;
+  overflow-y: auto;
+}
+
+ul.popup li {
+  float: left;
+  background: white;
+  box-shadow: none;
+  border: 0.5px solid deepskyblue;
+  border-top-style: none;
+  width: calc(100% - 1px);
+  height: 30px;
+  margin: 0;
+  text-indent: 10px;
+  text-align: left;
+  line-height: 30px;
+  font-size: 0.8em;
+  color: #333;
+}
+
+ul.popup li:hover {
+  filter: brightness(90%);
+}
+
+div.ul-fit {
+  z-index: 1000;
+  position: fixed;
+  width: calc(22.5vw - 0.5px) !important;
+  height: auto !important;
+  max-height: 30vh !important;
+  top: calc(15vh + 3vw + 154px) !important;
+  left: calc(27.688px + 38vw) !important;
+  margin: 0;
+  padding: 0 0 0 0 !important;
+  overflow-y: auto;
 }
 </style>
 
