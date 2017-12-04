@@ -38,15 +38,15 @@
       <div class="do">
         <div
           v-for="v in videos"
-          :key="v.hash"
-          v-bind:class="{ select: (chosenVideo !== null && v.video_hash === chosenVideo.video_hash) }"
+          :key="v.video_hash"
+          v-bind:class="{select: (chosenVideo !== null && v.video_hash === chosenVideo.video_hash), haveselect: (!(chosenVideo !== null && v.video_hash === chosenVideo.video_hash)) && ((v.video_hash in chosenProbe) && (chosenProbe[v.video_hash].length > 0)) }"
         >
           <div @click="chooseVideo(v)" class="file_meta">
             <span>{{v.path}}</span>
             <span v-if="v.datetime === '0001-01-01 00:00:00' || (v.lat === 0.0 && v.lng === 0.0)">지도 및 시간 정보 입력을 위해 연필 모양을 클릭해주세요.</span>
             <span v-else>Time: {{v.datetime}}, Latitude: {{v.lat}}, Longitude: {{v.lng}}</span>
           </div>
-          <div @click="editableVideoHash = v.hash" class="file_edit"></div>
+          <div @click="editableVideoHash = v.video_hash" class="file_edit"></div>
         </div>
       </div>
       <div class="alter-shadow"></div>
@@ -68,7 +68,6 @@
             <span>{{p.timedelta}}</span>
           </div>
         </li>
-        <li><div class="select"><span>출현 시간</span></div></li>
       </ul>
     </div>
   </div>
@@ -712,7 +711,7 @@ ul li {
   color: white;
 }
 
-#upload .do div.have-select div.file_meta {
+#upload .do div.haveselect div.file_meta {
   background: #96becc;
   color: white;
 }
@@ -961,7 +960,7 @@ div#name {
   background: url(../images/edit_s.png) no-repeat white center;
   background-size: 3vh;
 }
-#upload .do div.have-select div.file_edit {
+#upload .do div.haveselect div.file_edit {
   background: url(../images/edit_h.png) no-repeat white center;
   background-size: 3vh;
 }
