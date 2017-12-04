@@ -33,13 +33,14 @@
     <div id="name">{{caseTitle}} {{caseDateTime}} ({{caseMemo}})</div>
     <div id="upload">
       <button @click="newVideos()" class="left_button"></button>
-      <button class="right_button">분석 중 ( 10 / 30 )</button>
+      <button v-if="processingVideoCount > 0" class="right_button">{{processingVideoCount}}개 남았습니다.</button>
+      <button v-else @click="goToGallery()" class="right_button">다음 단계로</button>
       <div class="title_selected">Video List</div>
       <div class="do">
         <div
           v-for="v in videos"
           :key="v.video_hash"
-          v-bind:class="{select: (chosenVideo !== null && v.video_hash === chosenVideo.video_hash), haveselect: (!(chosenVideo !== null && v.video_hash === chosenVideo.video_hash)) && ((v.video_hash in chosenProbe) && (chosenProbe[v.video_hash].length > 0)) }"
+          v-bind:class="{select: (chosenVideo !== null && v.video_hash === chosenVideo.video_hash), haveselect: (!(chosenVideo !== null && v.video_hash === chosenVideo.video_hash)) && ((v.video_hash in chosenProbe) && (chosenProbe[v.video_hash].length > 0)), deact: !v.is_detection_done }"
         >
           <div @click="chooseVideo(v)" class="file_meta">
             <span>{{v.path}}</span>
@@ -74,14 +75,14 @@
 </template>
 
 <script>
-import axios from "axios";
-import $ from "jquery";
-import "jquery-datetimepicker";
+import axios from 'axios';
+import $ from 'jquery';
+import 'jquery-datetimepicker';
 import ionRangeSlider from 'ion-rangeslider';
 import moment from 'moment';
 import Vue from 'vue';
 
-import Location from "./location.js";
+import Location from './location.js';
 
 export default {
   data: function() {
@@ -103,15 +104,17 @@ export default {
       candidateLocations: [],
       navermap: null,
 
-      editableVideoHash: null
+      editableVideoHash: null,
+
+      processingVideoCount: 0
     };
   },
   methods: {
     newVideos() {
-      require("electron").remote.dialog.showOpenDialog(
+      require('electron').remote.dialog.showOpenDialog(
         {
-          title: "Choose Video",
-          properties: ["openFile", "multiSelections"]
+          title: 'Choose Video',
+          properties: ['openFile', 'multiSelections']
         },
         files => {
           let uploadFiles = [];
@@ -123,14 +126,46 @@ export default {
           }
           axios
             .post(
-              __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos']),
+              __global__.method.getUrl([
+                'cases',
+                __global__.data.case.hash,
+                'videos'
+              ]),
               {
                 videos: uploadFiles
               }
             )
             .then(this.__callback_upload_videos);
-          }
+
+          setTimeout(this.refreshVideoList, 1000);
+          setTimeout(this.statusPollingCheck, 2000);
+        }
       );
+    },
+    goToGallery() {
+      let positives = [];
+      for (let video in this.chosenProbe) {
+        let probeList = this.chosenProbe[video];
+        for (let i = 0; i < probeList.length; i++) {
+          positives.push(probeList[i]);
+        }
+      }
+      axios
+        .post(
+          __global__.method.getUrl([
+            'cases',
+            __global__.data.case.hash,
+            'probes'
+          ]),
+          {
+            'negatives': [],
+            'positives': positives
+          }
+        )
+        .then(this.__callback_go_to_gallery);
+    },
+    __callback_go_to_gallery(response) {
+      this.$router.push('gallery');
     },
     chooseVideo(video) {
       if (video.is_detection_done === false) {
@@ -140,86 +175,77 @@ export default {
       this.chosenVideo = video;
       this.chosenPeople = [];
       let imgList = this.chosenVideo.imgs;
-      if(imgList.length < 1) return;
+      if (imgList.length < 1) return;
 
-      for(let i=0; i<imgList.length; i++) {
+      for (let i = 0; i < imgList.length; i++) {
         let imgPersons = imgList[i].persons;
-        for(let j=0; j<imgPersons.length; j++) {
-          this.chosenPeople.push(
-            {
-              'timedelta': imgList[i].timedelta,
-              'moment': moment(imgList[i].timedelta, 'HH:mm:ss'),
-              'hash': imgPersons[j].hash,
-              'bbox_path': imgPersons[j].bbox_path,
-              'orig_path': imgPersons[j].orig_path
-            }
-          );
+        for (let j = 0; j < imgPersons.length; j++) {
+          this.chosenPeople.push({
+            timedelta: imgList[i].timedelta,
+            moment: moment(imgList[i].timedelta, 'HH:mm:ss'),
+            hash: imgPersons[j].hash,
+            bbox_path: imgPersons[j].bbox_path,
+            orig_path: imgPersons[j].orig_path
+          });
         }
       }
       this.startTime = moment(imgList[0].timedelta, 'HH:mm:ss');
-      this.endTime = moment(imgList[0].timedelta, 'HH:mm:ss');
+      this.endTime = moment(imgList[imgList.length - 1].timedelta, 'HH:mm:ss');
 
-      $('#slider').data('ionRangeSlider').destroy();
+      $('#slider')
+        .data('ionRangeSlider')
+        .destroy();
       $('#slider').ionRangeSlider({
-          type: "double",
-          grid: true,
-          grid_snap: true,
-          step: 1,
-          min: +moment(imgList[0].timedelta, 'HH:mm:ss'),
-          max: +moment(imgList[imgList.length-1].timedelta, 'HH:mm:ss'),
-          from: +this.startTime,
-          to: +this.endTime,
-          prettify: (num) => {
-              return moment(num).format('HH:mm:ss');
-          },
-          onFinish: this.__slider__callback
+        type: 'double',
+        grid: true,
+        grid_snap: true,
+        step: 1,
+        min: +this.startTime,
+        max: +this.endTime,
+        from: +this.startTime,
+        to: +this.endTime,
+        prettify: num => {
+          return moment(num).format('HH:mm:ss');
+        },
+        onFinish: this.__slider__callback
       });
     },
     toggleProbe(video, person) {
       let vh = video.video_hash;
       let ph = person.hash;
-      if(!(vh in this.chosenProbe)) Vue.set(this.chosenProbe, vh, []);
-      if(this.chosenProbe[vh].includes(ph)) {
+      if (!(vh in this.chosenProbe)) Vue.set(this.chosenProbe, vh, []);
+      if (this.chosenProbe[vh].includes(ph)) {
         this.chosenProbe[vh].splice(this.chosenProbe[vh].indexOf(ph), 1);
-      }
-      else {
+      } else {
         this.chosenProbe[vh].push(ph);
       }
     },
     __slider__callback(data) {
-      console.log(data['from']);
-      console.log(data['to']);
       this.startTime = data['from'];
       this.endTime = data['to'];
-      console.log(this.startTime);
-      console.log(this.endTime);
-      /*
-      this.chosenPeople = [];
-      let imgList = this.videos[this.selectedVideoIndex].img;
-      for(let i=0; i<imgList.length; i++) {
-        let imgTime = moment(imgList[i].time);
-        if(imgTime.isSameOrAfter(data['from']) && imgTime.isSameOrBefore(data['to'])) {
-          for(let j=0; j<imgList[i].persons.length; j++) {
-            this.chosenPeople.push(imgList[i].persons[j]);
-          }
-        }
-      }
-      */
     },
     saveVideoMetadata() {
       let metadata = {
         memo: '',
-        lat: this.chosenMarker === null ? 0.0 : this.chosenMarker.getPosition().y,
-        lng: this.chosenMarker === null ? 0.0 : this.chosenMarker.getPosition().x,
-        datetime: $("#datetimepicker")[0].value === '' ? '0001-01-01 00:00:00' : ($("#datetimepicker")[0].value + ':00')
+        lat:
+          this.chosenMarker === null ? 0.0 : this.chosenMarker.getPosition().y,
+        lng:
+          this.chosenMarker === null ? 0.0 : this.chosenMarker.getPosition().x,
+        datetime:
+          $('#datetimepicker')[0].value === ''
+            ? '0001-01-01 00:00:00'
+            : $('#datetimepicker')[0].value + ':00'
       };
-      var editableVideoIndex = -1;
 
-      axios
-        .put(
-          __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos', this.hashes[this.editableVideoHash]]),
-          metadata
-        );
+      axios.put(
+        __global__.method.getUrl([
+          'cases',
+          __global__.data.case.hash,
+          'videos',
+          this.hashes[this.editableVideoHash]
+        ]),
+        metadata
+      );
       this.editableVideoHash = null;
       this.chosenLocation = null;
       this.refreshVideoList();
@@ -228,15 +254,81 @@ export default {
       this.videos = [];
       axios
         .get(
-          __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos'])
+          __global__.method.getUrl([
+            'cases',
+            __global__.data.case.hash,
+            'videos'
+          ])
         )
         .then(this.__callback_set_videos);
     },
+    statusPollingCheck() {
+      axios
+        .get(
+          __global__.method.getUrl([
+            'cases',
+            __global__.data.case.hash,
+            'processing'
+          ])
+        )
+        .then(this.__callback_polling);
+    },
+    __callback_polling(response) {
+      if (response.data.total.length > 0) {
+        setTimeout(this.statusPollingCheck, 1000);
+      }
+      this.processingVideoCount = response.data.total.length;
+      for (let i = 0; i < this.videos.length; i++) {
+        if (
+          !this.videos[i].is_detection_done &&
+          !response.data.total.includes(this.videos[i].video_hash)
+        ) {
+          axios
+            .get(
+              __global__.method.getUrl([
+                'cases',
+                __global__.data.case.hash,
+                'videos',
+                this.videos[i].video_hash
+              ])
+            )
+            .then(this.__callback_set_one_video);
+        }
+      }
+    },
     __callback_upload_videos(response) {
-      this.refreshVideoList();
+      for (let i = 0; i < this.videos.length; i++) {
+        if (!this.videos[i].is_detection_done) {
+          axios
+            .get(
+              __global__.method.getUrl([
+                'cases',
+                __global__.data.case.hash,
+                'videos',
+                this.videos[i].video_hash
+              ])
+            )
+            .then(this.__callback_set_one_video);
+        }
+      }
     },
     __callback_set_videos(response) {
       this.videos = response.data.videos;
+    },
+    __callback_set_one_video(response) {
+      for (let i = 0; i < this.videos.length; i++) {
+        if (this.videos[i].video_hash === response.data.video_hash) {
+          Vue.set(this.videos, i, response.data);
+        }
+      }
+    },
+    __callback_set_probes(response) {
+      for (let i=0; i<response.data.persons.length; i++) {
+        let vh = response.data.persons[i].video_hash;
+        let ph = response.data.persons[i].person_hash;
+        if (!(vh in this.chosenProbe)) Vue.set(this.chosenProbe, vh, []);
+        this.chosenProbe[vh].push(ph);
+      }
     },
     __callback__navermap_search(status, response) {
       this.candidateLocations = [];
@@ -255,17 +347,8 @@ export default {
     }
   },
   watch: {
-    editableVideoHash: function(now, pre) {
-      console.log(pre);
-      console.log('-->');
-      console.log(now);
-      if (now == -1 && pre > -1) {
-        console.log(this.datetimeInput);
-        return;
-      }
-    },
     editableLocation: function(now, pre) {
-      if (now === "") return;
+      if (now === '') return;
       naver.maps.Service.geocode(
         { address: now },
         this.__callback__navermap_search
@@ -294,24 +377,26 @@ export default {
     this.caseDateTime = __global__.data.case.datetime;
     this.caseMemo = __global__.data.case.memo;
 
-    $("#datetimepicker").datetimepicker({
+    $('#datetimepicker').datetimepicker({
       step: 1,
-      format: "Y-m-d H:i"
+      format: 'Y-m-d H:i'
     });
-    this.navermap = new naver.maps.Map("navermap", {
+    this.navermap = new naver.maps.Map('navermap', {
       center: new naver.maps.LatLng(37.3595704, 127.105399),
       zoom: 10
     });
 
     $('#slider').ionRangeSlider({
-      type: "double",
+      type: 'double',
       grid: true,
       disable: true,
       min: +moment(),
       max: +moment(),
-      prettify: (num) => {
-        return moment(num).format().slice(0, -6);
-      },
+      prettify: num => {
+        return moment(num)
+          .format()
+          .slice(0, -6);
+      }
     });
 
     axios
@@ -319,6 +404,11 @@ export default {
         __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos'])
       )
       .then(this.__callback_set_videos);
+    axios
+      .get(
+        __global__.method.getUrl(['cases', __global__.data.case.hash, 'probes'])
+      )
+      .then(this.__callback_set_probes);
   }
 };
 </script>
