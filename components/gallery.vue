@@ -1,40 +1,17 @@
 <template>
 <div>
-  <!--
-	<div id="popup" class="on">
-		<div class="exit"></div>
-		<div class="popup">
-			<div class="pop_title"><span>Video의 메타데이터 수정</span></div>
-			<div class="datepick">
-				<div>일시</div>
-				<input type="text" id="datetimepicker" placeholder="일시를 입력하세요">
-			</div>
-			<div class="datepick">
-				<div>위치</div>
-				<input type="list" id="autocomplete" placeholder="위치를 검색하세요">
-				<div class="ul-fit">
-					<ul class="popup">
-						<li>자동완성 자동완성</li>
-						<li>자동완성2 자동완성2</li>
-						<li>자동완성3 자동완성3 자동완성3 자동완성3</li>
-					</ul>
-				</div>
-			</div>
-			<div class="map">
-			</div>
-		</div>
-		<div class="button"><div>취소</div><div>적용</div></div>
-	</div>
-  -->
 	<div id="name">{{caseTitle}} {{caseDateTime}} ({{caseMemo}})</div>
 	<div id="left">
 		<div @click="goToUpload()" id="previous"> 이전 단계로 </div>
 		<div class="title_selected">Selected</div>
 		<ul>
-			<li>
-        <div class="picture"></div>
-        <span>Video Name</span>
-        <span>2017-11-27 05:00 / COEX Street</span>
+			<li
+        v-for="s in selected"
+        v-bind:key="s.person_hash"
+      >
+        <div v-bind:style="{background: 'url(' + s.bbox_path + ') no-repeat center'}" class="picture"></div>
+        <span>{{videos[s.video_hash].path}}</span>
+        <span>{{videos[s.video_hash].datetime}}</span>
       </li>
 		</ul>
 		<div class="alter-shadow"></div>
@@ -46,25 +23,24 @@
 	<div id="list">
 		<div class="title_list">Expected</div>
 		<div class="expected">
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
+      <div
+        v-for="e in expected"
+        :key="e.person_hash"
+        v-bind:style="{background: 'url(' + e.bbox_path + ') no-repeat center #646464'}"
+        @click="toggleProbes(e.person_hash)"
+        :class="{select: chosenProbes.includes(e.person_hash)}"
+      ></div>
 		</div>
 		<div class="buttons">
-			<button class="accept"></button>
+			<button @click="sendProbes()" class="accept"></button>
 		</div>
 	</div>
 </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data: function() {
     return {
@@ -72,15 +48,91 @@ export default {
       caseDateTime: '',
       caseMemo: '',
 
+      videos: {},
+
       navermap: null,
 
       selected: [],
-      expected: []
+      expected: [],
+
+      chosenProbes: []
     }
   },
   methods: {
     goToUpload() {
       this.$router.push('upload');
+    },
+    setSelected() {
+      axios
+        .get(
+          __global__.method.getUrl(['cases', __global__.data.case.hash, 'probes'])
+        )
+        .then(this.__callback_set_selected);
+    },
+    __callback_set_selected(response) {
+      this.selected = response.data.persons;
+    },
+    setExpected() {
+      axios
+        .get(
+          __global__.method.getUrl(['cases', __global__.data.case.hash, 'galleries'])
+        )
+        .then(this.__callback_set_expected);
+    },
+    __callback_set_expected(response) {
+      this.expected = response.data.persons;
+    },
+    setVideos() {
+      axios
+        .get(
+          __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos'])
+        )
+        .then(this.__callback_set_videos);
+    },
+    __callback_set_videos(response) {
+      let vList = response.data.videos;
+      for(let i=0; i<vList.length; i++) {
+        this.videos[vList[i].video_hash] = vList[i];
+      }
+      this.setSelected();
+      this.setExpected();
+    },
+    toggleProbes(person_hash) {
+      if(this.chosenProbes.includes(person_hash)) {
+        this.chosenProbes.splice(this.chosenProbes.indexOf(person_hash), 1);
+      }
+      else {
+        this.chosenProbes.push(person_hash);
+      }
+    },
+    sendProbes() {
+      let positives = [];
+      let negatives = [];
+      for(let i=0; i<this.expected.length; i++) {
+        if(this.chosenProbes.includes(this.expected[i].person_hash)) {
+          positives.push(this.expected[i].person_hash);
+        }
+        else {
+          negatives.push(this.expected[i].person_hash);
+        }
+      }
+      this.chosenProbes = [];
+      this.selected = [];
+      this.expected = [];
+
+      axios
+        .post(
+          __global__.method.getUrl(['cases', __global__.data.case.hash, 'probes']),
+          {
+            positives: positives,
+            negatives: negatives
+          }
+        )
+        .then(this.__callback_send_probes);
+    },
+    __callback_send_probes() {
+      this.setSelected();
+      this.setExpected();
     }
   },
   mounted: function() {
@@ -93,17 +145,7 @@ export default {
       zoom: 10
     });
 
-    axios
-      .get(
-        __global__.method.getUrl(['cases', __global__.data.case.hash, 'videos'])
-      )
-      .then(this.__callback_set_videos);
-    axios
-      .get(
-        __global__.method.getUrl(['cases', __global__.data.case.hash, 'probes'])
-      )
-      .then(this.__callback_set_probes);
-
+    this.setVideos();
   }
 }
 </script>
@@ -134,7 +176,7 @@ big,
 cite,
 code,
 del,
-dfn,
+callback_set_vdfn,
 em,
 img,
 ins,
@@ -1089,7 +1131,7 @@ div#name {
 }
 div.expected div {
   float: left;
-  margin-left: 1%;
+  margin-left: 10px;
   width: 8.85%;
   height: 99%;
   border-style: solid;
@@ -1098,14 +1140,16 @@ div.expected div {
 }
 
 div.expected div:hover {
+  margin-left: 4px;
   border-style: solid;
-  border-width: 1.5px;
+  border-width: 4px;
   border-color: #00a0e9;
 }
 
 div.expected div.select {
+  margin-left: 4px;
   border-style: solid;
-  border-width: 1.5px;
+  border-width: 4px;
   border-color: #00a0e9;
 }
 
@@ -1174,7 +1218,8 @@ div.title_map {
   margin: 4px 4px;
   height: 90%;
   /*background: url(../images/8_0.jpg) no-repeat;*/
-  background-size: cover;
+  background-size: contain;
+  background-position: center;
 }
 
 #left ul li span {
