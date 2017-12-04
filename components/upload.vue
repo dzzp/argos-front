@@ -34,7 +34,7 @@
     <div id="upload">
       <button @click="newVideos()" class="left_button"></button>
       <button v-if="processingVideoCount > 0" class="right_button">{{processingVideoCount}}개 남았습니다.</button>
-      <button v-else @click="goToGallery()" class="right_button">다음 단계로</button>
+      <button v-else @click="goToGallery()" class="right_button_done">다음 단계로</button>
       <div class="title_selected">Video List</div>
       <div class="do">
         <div
@@ -597,7 +597,26 @@ video {
 .right_button:hover {
   background: #218db7;
 }
-
+.right_button_done {
+  float: right;
+  border: none;
+  width: calc(100vw/3/2 - 3px);
+  height: 6vh;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 120;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1em;
+  line-height: 6vh;
+  box-shadow: 0px 2px 2px #888888;
+  background: #218db7;
+}
+.right_button_done:hover {
+  background: #253746;
+}
 .header div {
   width: 50%;
 }
