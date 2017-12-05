@@ -9,7 +9,7 @@
         v-for="s in selected"
         v-bind:key="s.person_hash"
       >
-        <div v-bind:style="{background: 'url(' + s.bbox_path + ') no-repeat center'}" class="picture"></div>
+        <div v-bind:style="{'background-image': 'url(' + s.bbox_path + ')'}" class="picture"></div>
         <span>{{videos[s.video_hash].path}}</span>
         <span>{{videos[s.video_hash].datetime}}</span>
       </li>
@@ -1217,9 +1217,9 @@ div.title_map {
   width: 20%;
   margin: 4px 4px;
   height: 90%;
-  /*background: url(../images/8_0.jpg) no-repeat;*/
   background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 #left ul li span {
