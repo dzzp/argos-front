@@ -8,10 +8,17 @@
 			<li
         v-for="s in selected"
         v-bind:key="s.person_hash"
+        v-on:mouseover="toggleMarkerAnimation(s.marker)"
+        v-on:mouseout="toggleMarkerAnimation(s.marker)"
       >
         <div v-bind:style="{'background-image': 'url(' + s.bbox_path + ')'}" class="picture"></div>
         <span>{{videos[s.video_hash].path}}</span>
-        <span>{{videos[s.video_hash].datetime}}</span>
+        <span>
+          {{ (videos[s.video_hash].datetime === '0001-01-01 00:00:00' ? '시간 정보를 입력하세요.':videos[s.video_hash].datetime) }}
+        </span>
+        <span style='padding-top:0px'>
+          {{ ((videos[s.video_hash].lat === 0.0 || videos[s.video_hash].lng === 0.0) ? '공간 정보를 입력하세요.' : ('Lat(' + videos[s.video_hash].lat + ') Lng(' + videos[s.video_hash].lng + ')'))}}
+        </span>
       </li>
 		</ul>
 		<div class="alter-shadow"></div>
@@ -40,6 +47,7 @@
 
 <script>
 import axios from 'axios';
+import moment from 'moment';
 
 export default {
   data: function() {
@@ -54,6 +62,7 @@ export default {
 
       selected: [],
       expected: [],
+      line: null,
 
       chosenProbes: []
     }
@@ -70,7 +79,102 @@ export default {
         .then(this.__callback_set_selected);
     },
     __callback_set_selected(response) {
+      // Init
+      if(this.line !== null) {
+        this.line.setMap(null);
+        this.line = null;
+      }
+      for(let i=0; i<this.selected.length; i++) {
+        if(this.selected[i].marker !== null) {
+          this.selected[i].marker.setMap(null);
+          this.selected[i].marker = null;
+        }
+      }
+
+      // Calc
       this.selected = response.data.persons;
+      let latAcc = 0.0;
+      let lngAcc = 0.0;
+      let markerCount = 0;
+
+      for(let i=0; i<this.selected.length; i++) {
+        let video = this.videos[this.selected[i].video_hash];
+        if(video.datetime === '0001-01-01 00:00:00' || video.lat === 0.0 || video.lng === 0.0) {
+          this.selected[i].marker = null;
+          this.selected[i].time = null;
+        }
+        else {
+          var timedelta = null;
+          for(let j=0; j<video.imgs.length; j++) {
+            let imgs = video.imgs[j];
+            for(let k=0; k<imgs.persons.length; k++) {
+              if(imgs.persons[k].hash === this.selected[i].person_hash) {
+                timedelta = moment(imgs.timedelta, 'HH:mm:ss');
+              }
+              if(timedelta !== null) break;
+            }
+            if(timedelta !== null) break;
+          }
+          var time = moment(video.datetime);
+          time = time.add(timedelta.hours(), 'h');
+          time = time.add(timedelta.minutes(), 'm');
+          time = time.add(timedelta.seconds(), 's');
+
+          // Set values
+          var alreadyMarked = -1;
+          for(let j=0; j<i; ++j) {
+            if(this.selected[j].video_hash === this.selected[i].video_hash) {
+              alreadyMarked = j;
+              break;
+            }
+          }
+          if(alreadyMarked === -1) {
+            this.selected[i].marker = new naver.maps.Marker({
+              position: new naver.maps.LatLng(video.lat, video.lng),
+              map: this.navermap
+            });
+            this.selected[i].marker.setMap(this.navermap);
+          }
+          else {
+            this.selected[i].marker = this.selected[alreadyMarked].marker;
+          }
+          this.selected[i].time = time;
+          latAcc += video.lat;
+          lngAcc += video.lng;
+          markerCount += 1;
+        }
+      }
+
+      // draw
+      if(latAcc !== 0.0 && lngAcc != 0.0) {
+        this.navermap.panTo(new naver.maps.LatLng(latAcc / markerCount, lngAcc / markerCount));
+        this.selected.sort((l, r) => {
+          if(l.time === null && r.time === null) return 0;
+          if(l.time === null) return -1;
+          if(r.time === null) return 1;
+          if(l.time.isBefore(r.time)) return -1;
+          else if(l.time.isAfter(r.time)) return 1;
+          else return 0;
+        });
+        let positions = [];
+        for(let i=0; i<this.selected.length; i++) {
+          if(this.selected[i].marker !== null) {
+            this.selected[i].marker.setMap(this.navermap);
+            positions.push(this.selected[i].marker.getPosition());
+          }
+        }
+        this.line = new naver.maps.Polyline({
+          map: this.navermap,
+          path: positions,
+          strokeOpacity: 0.5,
+          endIcon: naver.maps.PointingIcon.OPEN_ARROW,
+          endIconSize: 20,
+          startIcon: naver.maps.PointingIcon.CIRCLE,
+          startIconSize: 20,
+        });
+        this.line.setMap(this.navermap);
+        this.navermap.fitBounds(positions, { top: 50, right: 50, bottom: 50, left: 50 });
+      }
     },
     setExpected() {
       axios
@@ -117,7 +221,7 @@ export default {
         }
       }
       this.chosenProbes = [];
-      this.selected = [];
+      //this.selected = [];
       this.expected = [];
 
       axios
@@ -133,6 +237,16 @@ export default {
     __callback_send_probes() {
       this.setSelected();
       this.setExpected();
+    },
+    toggleMarkerAnimation(marker) {
+      if(marker !== null) {
+        if(marker.getAnimation() === null) {
+          marker.setAnimation(naver.maps.Animation.BOUNCE);
+        }
+        else {
+          marker.setAnimation(null);
+        }
+      }
     }
   },
   mounted: function() {
@@ -1224,11 +1338,10 @@ div.title_map {
 
 #left ul li span {
   margin-left: 1vw;
-  width: 60%;
-  line-height: 4.6vh;
-  height: 40%;
+  width: 70%;
   float: left;
   font-size: 0.8em;
+  padding-top: 10px;
 }
 #left ul li span:first-of-type {
   font-weight: bold;
