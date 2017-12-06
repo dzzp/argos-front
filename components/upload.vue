@@ -1,7 +1,7 @@
 <template>
   <div class="full">
     <div id="popup" v-bind:class="{invisiblePopup: (editableVideoHash === null)}">
-      <div @click="editableVideoHash = null" class="exit"></div>
+      <div @click="toggleVideo(null)" class="exit"></div>
       <div class="popup">
         <div class="pop_title"><span>Video의 메타데이터 수정</span></div>
           <div class="datepick">
@@ -26,7 +26,7 @@
           <div id="navermap" class="map" v-pre></div>
       </div>
       <div class="button">
-        <div @click="editableVideoHash = null">취소</div>
+        <div @click="toggleVideo(null)">취소</div>
         <div @click="saveVideoMetadata()">적용</div>
       </div>
     </div>
@@ -47,7 +47,7 @@
             <span v-if="v.datetime === '0001-01-01 00:00:00' || (v.lat === 0.0 && v.lng === 0.0)">지도 및 시간 정보 입력을 위해 연필 모양을 클릭해주세요.</span>
             <span v-else>Time: {{v.datetime}}, Latitude: {{v.lat}}, Longitude: {{v.lng}}</span>
           </div>
-          <div @click="editableVideoHash = v.video_hash" class="file_edit"></div>
+          <div @click="toggleVideo(v)" class="file_edit"></div>
         </div>
       </div>
       <div class="alter-shadow"></div>
@@ -141,6 +141,23 @@ export default {
           setTimeout(this.statusPollingCheck, 2000);
         }
       );
+    },
+    toggleVideo(video) {
+      // Turn off
+      if(video === null) {
+        this.editableVideoHash = null;
+        this.chosenLocation = null;
+      }
+      // Load if necessary
+      else {
+        this.editableVideoHash = video.video_hash;
+        if(video.datetime !== '0001-01-01 00:00:00') {
+          $('#datetimepicker')[0].value = video.datetime.substring(0, 16);
+        }
+        if(video.lat !== 0.0 && video.lng !== 0.0) {
+          this.chosenLocation = new Location('Lat(' + video.lat + ') Lng(' + video.lng + ')', video.lat, video.lng);
+        }
+      }
     },
     goToGallery() {
       let positives = [];
@@ -242,13 +259,24 @@ export default {
           'cases',
           __global__.data.case.hash,
           'videos',
-          this.hashes[this.editableVideoHash]
+          this.editableVideoHash
         ]),
         metadata
       );
-      this.editableVideoHash = null;
-      this.chosenLocation = null;
-      this.refreshVideoList();
+      this.refreshVideo(this.editableVideoHash);
+      this.toggleVideo(null);
+    },
+    refreshVideo(video_hash) {
+      axios
+        .get(
+          __global__.method.getUrl([
+            'cases',
+            __global__.data.case.hash,
+            'videos',
+            video_hash
+          ])
+        )
+        .then(this.__callback_set_one_video);
     },
     refreshVideoList() {
       this.videos = [];
